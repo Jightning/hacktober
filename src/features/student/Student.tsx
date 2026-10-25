@@ -130,24 +130,28 @@ export function Student({
         </nav>
       }
       outline={
-        <nav className="workspace-outline" aria-label="Notebook outline">
-          <h2>Outline</h2>
-          {lab.blocks.map((block, index) => (
-            <a
-              key={block.id}
-              href={`#block-${block.id}`}
-              onClick={() => {
-                setPage('notebook');
-                void visit(block.id);
-                requestAnimationFrame(() =>
-                  document.getElementById(`block-${block.id}`)?.scrollIntoView({ block: 'start' }),
-                );
-              }}
-            >
-              {index + 1}. {block.title.replace(/^\d+\.\s*/, '')}
-            </a>
-          ))}
-        </nav>
+        page === 'notebook' && (
+          <nav className="workspace-outline" aria-label="Notebook outline">
+            <h2>Outline</h2>
+            {lab.blocks.map((block, index) => (
+              <a
+                key={block.id}
+                href={`#block-${block.id}`}
+                onClick={() => {
+                  setPage('notebook');
+                  void visit(block.id);
+                  requestAnimationFrame(() =>
+                    document
+                      .getElementById(`block-${block.id}`)
+                      ?.scrollIntoView({ block: 'start' }),
+                  );
+                }}
+              >
+                {index + 1}. {block.title.replace(/^\d+\.\s*/, '')}
+              </a>
+            ))}
+          </nav>
+        )
       }
       assistant={renderAssistant({ enabled: lab.settings.studentAI })}
     >

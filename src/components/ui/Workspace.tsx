@@ -16,13 +16,13 @@ export function Workspace({
 }) {
   const [menuOpen, setMenuOpen] = useState(() => window.matchMedia('(min-width: 1201px)').matches);
   const [assistantOpen, setAssistantOpen] = useState(
-    () => window.matchMedia('(min-width: 1501px)').matches,
+    () => window.matchMedia('(min-width: 1201px)').matches,
   );
   const id = useId();
   const showAssistant = Boolean(assistant && assistantVisible && assistantOpen);
   return (
     <div
-      className={`notebook-workspace ${menuOpen ? 'with-navigation' : ''} ${outline ? 'with-outline' : ''} ${showAssistant ? 'with-assistant' : ''}`}
+      className={`notebook-workspace ${menuOpen || showAssistant ? 'with-navigation' : ''} ${outline ? 'with-outline' : ''} ${showAssistant ? 'with-assistant' : ''}`}
     >
       <div className="workspace-rail workspace-rail-left">
         <button
@@ -38,12 +38,23 @@ export function Workspace({
         </button>
       </div>
       <aside
-        id={`${id}-nav`}
         className="workspace-sidebar"
-        aria-label="Workspace navigation"
-        hidden={!menuOpen}
+        aria-label="Workspace tools"
+        hidden={!menuOpen && !showAssistant}
       >
-        {navigation}
+        <div id={`${id}-nav`} hidden={!menuOpen}>
+          {navigation}
+        </div>
+        {assistant && (
+          <aside
+            id={`${id}-ai`}
+            className="workspace-assistant"
+            aria-label="AI assistant"
+            hidden={!showAssistant}
+          >
+            {assistant}
+          </aside>
+        )}
       </aside>
       {outline && (
         <aside className="workspace-outline-column" aria-label="Document outline">
@@ -51,18 +62,8 @@ export function Workspace({
         </aside>
       )}
       <div className="workspace-document">{children}</div>
-      {assistant && (
-        <aside
-          id={`${id}-ai`}
-          className="workspace-assistant"
-          aria-label="AI assistant"
-          hidden={!showAssistant}
-        >
-          {assistant}
-        </aside>
-      )}
       {assistant && assistantVisible && (
-        <div className="workspace-rail workspace-rail-right">
+        <div className="workspace-assistant-toggle">
           <button
             type="button"
             className="icon-button"

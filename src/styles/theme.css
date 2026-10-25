@@ -425,12 +425,9 @@ section[id] {
 }
 .notebook-workspace {
   --navigation-width: 0px;
-  --assistant-width: 0px;
   --outline-width: 0px;
   display: grid;
-  grid-template-columns:
-    48px var(--navigation-width) var(--outline-width) minmax(0, 1fr) var(--assistant-width)
-    48px;
+  grid-template-columns: 48px var(--navigation-width) var(--outline-width) minmax(0, 1fr) 24px;
   align-items: start;
   min-height: calc(100dvh - 160px);
   position: relative;
@@ -442,7 +439,7 @@ section[id] {
   --outline-width: 192px;
 }
 .notebook-workspace.with-assistant {
-  --assistant-width: 320px;
+  --navigation-width: 304px;
 }
 .workspace-rail {
   position: sticky;
@@ -454,18 +451,21 @@ section[id] {
 .workspace-rail-left {
   grid-column: 1;
 }
-.workspace-rail-right {
-  grid-column: 6;
-}
 .workspace-sidebar {
   grid-column: 2;
   grid-row: 1;
   position: sticky;
   top: 16px;
   padding: 16px 8px;
-  max-height: calc(100dvh - 32px);
+  height: calc(100dvh - 112px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+.workspace-sidebar > div {
+  flex: 0 0 auto;
 }
 .workspace-nav {
   display: flex;
@@ -555,19 +555,21 @@ section[id] {
   margin: 0 0 24px;
 }
 .workspace-assistant {
-  grid-column: 5;
-  grid-row: 1;
   min-width: 0;
-  position: sticky;
-  top: 16px;
-  max-height: calc(100dvh - 32px);
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 24px;
-  margin-top: 16px;
+  padding: 16px;
+  margin-top: auto;
   background: var(--surface);
+}
+.workspace-assistant-toggle {
+  position: fixed;
+  left: 4px;
+  bottom: 16px;
+  z-index: 6;
 }
 .workspace-assistant > .panel {
   border: 0;
@@ -616,33 +618,16 @@ section[id] {
 .notebook-cell:has(.cell-summary) .cell-heading {
   border-radius: var(--radius) var(--radius) 0 0;
 }
-@media (max-width: 1500px) {
-  .notebook-workspace.with-assistant {
-    --assistant-width: 0px;
-  }
-  .workspace-assistant {
-    position: fixed;
-    top: 80px;
-    right: 56px;
-    width: min(352px, calc(100vw - 112px));
-    max-height: calc(100dvh - 96px);
-    margin: 0;
-    z-index: 5;
-    box-shadow: 0 8px 32px #25263126;
-  }
-  .workspace-document {
-    padding: 24px 16px 48px;
-  }
-}
 @media (max-width: 1200px) {
-  .notebook-workspace.with-navigation {
+  .notebook-workspace.with-navigation,
+  .notebook-workspace.with-assistant {
     --navigation-width: 0px;
   }
   .workspace-sidebar {
     position: fixed;
     top: 80px;
     left: 56px;
-    width: min(272px, calc(100vw - 112px));
+    width: min(336px, calc(100vw - 72px));
     max-height: calc(100dvh - 96px);
     padding: 16px;
     background: var(--page);
