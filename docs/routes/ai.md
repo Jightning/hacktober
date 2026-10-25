@@ -1,5 +1,64 @@
 # R4 — AI integration handoff
 
+## Final R4 completion — 2026-10-25
+
+**R4.1–R4.4 complete on the recreated `r4` branch, based on integrated main `6173842`.** The previously outstanding browser-state matrix is now verified. No further production assistant defect was found; the existing conversation isolation and recovery implementation passed. Added an explicit HTTP 429 quota-exhaustion/recovery regression in `tests/ai.test.ts`.
+
+- **R4 application ready:** `npm run typecheck`, all **22 tests** (including **6 AI route tests**), and `npm run build` pass on the updated notebook UI checkout. Dependency files are unchanged.
+- **R4 live evidence ready:** fresh student and assigned-TA requests succeeded through the real application with `gemma-4-26b-a4b-it`, live mode, and `mock: false`. The production-built notebook assistant also displayed a real live response in Safari.
+- **G2 / complete G3 are still separate:** R4 completion does not certify the other routes or the combined end-to-end rehearsal. The roadmap is deliberately unchanged at the user's request; its remaining R4.3 checkbox can be reconciled by the integration owner using this evidence.
+
+### Completed browser-state matrix
+
+The isolated harness imported the actual `Assistant` component, current shared styles, real session/authentication routes, real AI route/provider modules, and an in-memory SQLite database seeded exclusively from repository demo fixtures. It ran the component under React StrictMode. Disabled settings used a separate publication snapshot. No real student records, external classroom database, or production service settings were modified.
+
+Chrome verified disabled student/TA states and mock success; Safari completed recovery and concurrency cases after Chrome automation lost window access. All non-live fault cases used explicitly simulated Google HTTP transport responses, or intentionally absent credentials in the isolated server process. The real `.env` file was never cleared or altered for failure simulation.
+
+| State / action                     | Observed browser result                                                                                       | Supporting stored/request evidence                                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Disabled student                   | Instructor-disabled notice; question and Send controls disabled.                                              | Zero assistant POSTs, zero provider calls, no messages.                                                                                       |
+| Disabled TA                        | TA heading and instructor-disabled notice; question and Send controls disabled.                               | Disabled settings are also enforced by the existing API regression.                                                                           |
+| Empty enabled history              | “No messages yet.” and enabled input after history loads.                                                     | Real empty history endpoint response.                                                                                                         |
+| Mock success                       | Fixed hint labeled “Assistant (simulated)” and “[MOCK — not Gemma]”; input cleared.                           | Actual `mockAI: true` application path.                                                                                                       |
+| Missing key                        | Configuration error, retained question, “Retry question”.                                                     | One failed POST, zero provider calls, zero stored messages. Restoring the fixture configuration and retrying succeeded.                       |
+| Access failure (403)               | Sanitized provider error; original question retained and editable.                                            | One provider call, one failed POST, zero stored messages; retry after recovery succeeded.                                                     |
+| Quota failure (429)                | Same safe error and retained question.                                                                        | Failed call saved nothing; recovery and retry yielded exactly one user/assistant pair.                                                        |
+| Empty provider response            | Retryable provider error; retained question.                                                                  | No partial turn saved; retry after recovery succeeded.                                                                                        |
+| History-load failure               | Visible error and “Retry loading conversation”; Send and input disabled until recovery.                       | Persistent simulated 503 survived StrictMode's repeated effect setup. Recovery followed by Retry restored empty history and enabled the form. |
+| Pending / duplicate clicks         | “Waiting for the assistant…” and disabled input/Thinking button during a 10-second provider delay.            | A rapid double-click produced exactly one POST, one provider call, and one stored user/assistant pair.                                        |
+| Selected student changes in flight | Switched from student-1 to student-2 while a TA reply was pending; student-2 remained empty after completion. | Stored actor was ta-1 and selected student was student-1. Switching back loaded only student-1's completed turn.                              |
+| Live integrated notebook           | Production-built notebook sidebar displayed pending controls, then “Assistant (live)” and cleared input.      | Real Google request; excerpt: “Think of density as a way to determine how much mass is packed into a single unit of volume (such as 1 mL).”   |
+
+Successful replies from the fault-recovery transport fixture exercise the application's non-mock response path and therefore render “live”; their response text explicitly starts “SIMULATED TRANSPORT REPLY”. They are **not** counted as live-model evidence. The mock-mode row uses the actual fixed mock provider. Only the final integrated notebook row and the measured smoke requests below used Google.
+
+Additional visual check: at a 390 CSS-pixel assistant container width, the heading, explanatory text, messages, and input wrapped within the panel. This is a narrow-container check, not a claim of a complete mobile or screen-reader audit.
+
+### Fresh live smoke on the integrated checkout
+
+Rechecked the official [Gemma API documentation](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api). No model, prompt, generation setting, timeout, or fallback changes were needed. Each smoke request used a separately authenticated agent against `createApp` with `mockAI: false`, a fresh in-memory database, and only the fictional density lab shipped in `server/db/fixture.ts` and `seed.ts`.
+
+| Request                 | Mode / model                |   Latency | Result                                                                                                                                                                  |
+| ----------------------- | --------------------------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Student conceptual hint | live / `gemma-4-26b-a4b-it` | 10,775 ms | HTTP 200, `mock: false`; described density as how compact a substance is and asked whether mass in a small volume implies high or low density. No final numeric answer. |
+| Initial TA smoke        | live / same model           | 24,225 ms | Application HTTP 502. Upstream cause was not captured; do not call this a confirmed timeout or quota failure.                                                           |
+| TA retry                | live / same model           | 11,263 ms | HTTP 200, `mock: false`, provider finish reason STOP. Summarized “Correct Answer: 2.5 g/mL”, units and reasoning criteria, and a diagnostic question.                   |
+
+The earlier prompt-injection/direct-answer evaluation below remains applicable because the provider and policies are unchanged. The fresh failure and successful retry are both recorded rather than treating provider reliability as guaranteed. Guidance prompting still cannot guarantee that a model will never derive or disclose an answer from public lab content.
+
+### Final handoff and safety
+
+Ordered new commits: `2c29634` (`test: cover assistant quota failure and recovery`), followed by the documentation commit containing this completion record. Prior R4 commits and the notebook UI are already in the baseline ancestry and must not be cherry-picked again.
+
+Changed tracked files in this pass: `tests/ai.test.ts` and `docs/routes/ai.md`. No frontend/backend production changes, shared contracts, dependencies, or root roadmap edits were required. The temporary harness, probe scripts, and raw smoke results remain in ignored `data/`; the localhost fixture server was stopped after verification. Local environment instructions below still apply.
+
+Final checks found no provided key or Google-key pattern in tracked working files, the frontend bundle, or reachable Git-history blobs. `.env` and temporary test data remain ignored. No push, merge, co-author trailer, or Git identity change was performed in this pass.
+
+---
+
+## Previous R4 implementation and evidence (historical)
+
+The sections below record the original R4 pass. Its browser-matrix limitation is resolved by the final completion record above; the original test counts and commit base describe that earlier checkout.
+
 Verified on 2026-10-25. Branch: `r4`, based on `4a2d344` (the roadmap commit).
 
 ## Readiness
