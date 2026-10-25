@@ -21,12 +21,12 @@ The notebook UI work (`c68dff3`, `e4d177f`, `3e9ecb9`) is combined with R4 from 
 - [x] Student answer preservation across local pages and My labs, dirty-state reporting to shell guards, and focused/visible-step reporting. Staff sees current step and checkpoint without changing completion semantics.
 - [x] R4 conversation isolation, retry handling, context-boundary tests, and recorded live student/TA Gemma evidence integrated. Mode labels remain explicit: simulated or live.
 - [x] Combined typecheck, all 21 tests, and production build pass. Dependencies and lockfile are unchanged.
-- [ ] Finish the remaining R1–R3 acceptance work and combined G2 rehearsal. Earlier UI browser checks used an isolated database and simulated AI; they are not a complete post-merge rehearsal.
+- [ ] Finish the remaining R1/R3 acceptance work and combined G2 rehearsal. R2 is complete; see its handoff below. Earlier UI browser checks used an isolated database and simulated AI; they are not a complete post-merge rehearsal.
 - [ ] Complete G3 with G2 and a fresh live smoke on the demo machine. R4's successful live evidence is recorded; credentials are still machine-local.
 
 Evidence: [UI implementation and browser checks](docs/superpowers/plans/2026-10-25-notebook-ui.md), [R4 handoff and live observations](docs/routes/ai.md). R4.3's full browser-state matrix remains open as noted in its handoff. Unchecked route items below remain acceptance work, even where the UI pass already supplies part of the implementation.
 
-G1 implementation is present in `src/app/App.tsx` (direct consumer, no separate wrapper) and `Student.tsx`: optional `onDirtyChange` reports aggregated unsaved answers, clears on unmount, and guards lab changes, home navigation, and sign-out. My labs preserves the mounted notebook. The original isolated callback regression and full cancel/discard navigation matrix remain to be recorded in the R1/R2 handoffs.
+G1 implementation is present in `src/app/App.tsx` (direct consumer, no separate wrapper) and `Student.tsx`: optional `onDirtyChange` reports aggregated unsaved answers, clears on unmount, and guards lab changes, home navigation, and sign-out. My labs preserves the mounted notebook. R2 has now verified the full cancel/discard navigation matrix on integrated main and recorded it in docs/routes/student.md. The original isolated callback regression remains an R1 handoff item.
 
 ## 1. Ownership rules that prevent collisions
 
@@ -201,20 +201,22 @@ At minute 120, stop adding optional UI improvements. Preserve data safety, autho
 
 **Owner: Person 2. Output: reliable answer entry, clear verification, and protected unsaved work.**
 
+**Status (2026-10-25): complete.** Student fixes in `a1e23cd`; [handoff and browser evidence](docs/routes/student.md). Combined typecheck, 26 tests, and build pass. G1 navigation acceptance was verified on integrated main; no shell modifications were needed.
+
 ### R2.1 — Protect the progress contract
 
-- [ ] Create `tests/student.test.ts` using `createDatabase(':memory:')`, `seed(db)`, `createApp(db, { demoAuth: true, mockAI: true })`, and independent Supertest agents.
-- [ ] Assert visit and submission leave completions unchanged; successful automatic check creates completion; incorrect value/units do not.
-- [ ] Add two independent answer/checkpoint pairs in a test fixture. Change one answer and assert only its dependent completions are removed, including prior TA approval. Preserve `progress`, `requests`, and `verify` signatures consumed by R3/R4.
+- [x] Create `tests/student.test.ts` using `createDatabase(':memory:')`, `seed(db)`, `createApp(db, { demoAuth: true, mockAI: true })`, and independent Supertest agents.
+- [x] Assert visit and submission leave completions unchanged; successful automatic check creates completion; incorrect value/units do not.
+- [x] Add two independent answer/checkpoint pairs in a test fixture. Change one answer and assert only its dependent completions are removed, including prior TA approval. Preserve `progress`, `requests`, and `verify` signatures consumed by R3/R4.
 
 **Done when:** tests prove required-checkpoint progress is driven by stored verification, not navigation or submissions.
 
 ### R2.2 — Make editing and recovery reliable
 
-- [ ] Keep per-answer unsaved state in `AnswerInput.tsx` and aggregate it in `Student.tsx`; implement optional `onDirtyChange` with G1's agreed semantics.
-- [ ] Keep answer inputs protected during in-flight saves. On failed save, retain the value and dirty state and expose Retry. Polling must never replace an unsaved local value.
-- [ ] Clear dirty state only after a confirmed successful submission or deliberate discard. A successful write followed by a failed refresh must not falsely imply the typed answer was discarded.
-- [ ] Verify saved answers recover on refresh while submitted and verified remain visibly different states. Do not introduce localStorage as a second authoritative source of progress.
+- [x] Keep per-answer unsaved state in `AnswerInput.tsx` and aggregate it in `Student.tsx`; implement optional `onDirtyChange` with G1's agreed semantics.
+- [x] Keep answer inputs protected during in-flight saves. On failed save, retain the value and dirty state and expose Retry. Polling must never replace an unsaved local value.
+- [x] Clear dirty state only after a confirmed successful submission or deliberate discard. A successful write followed by a failed refresh must not falsely imply the typed answer was discarded.
+- [x] Verify saved answers recover on refresh while submitted and verified remain visibly different states. Do not introduce localStorage as a second authoritative source of progress.
 
 **Done when:** editing cannot disappear through polling or save races, and the shell receives accurate dirty/clean notifications. Local implementation does not wait for R1.2/R1.3.
 
@@ -222,25 +224,25 @@ At minute 120, stop adding optional UI improvements. Preserve data safety, autho
 
 **Dependency: G1 for the shell check. Person 1 prepares an early preview checkout with baseline + G1 + R2 commits; R3/R4 and final G2 are not prerequisites.**
 
-- [ ] Add document unload/reload protection while dirty; remove listeners on cleanup. Browsers control the wording and availability of their native unload warning.
-- [ ] On that early preview checkout, type an unsaved answer, attempt publication switch, sign-out, and home navigation, then cancel each warning. Confirm typed text and session remain intact.
-- [ ] Repeat after save: navigation should proceed without an unnecessary warning. Confirming discard should permit the transition and reset dirty state.
+- [x] Add document unload/reload protection while dirty; remove listeners on cleanup. Browsers control the wording and availability of their native unload warning.
+- [x] On that early preview checkout, type an unsaved answer, attempt publication switch, sign-out, and home navigation, then cancel each warning. Confirm typed text and session remain intact.
+- [x] Repeat after save: navigation should proceed without an unnecessary warning. Confirming discard should permit the transition and reset dirty state.
 
 **Done when:** R2's dirty-state producer and R1's navigation consumer work together without either owner editing the other's feature.
 
 ### R2.4 — Finish the student interaction
 
-- [ ] Check keyboard navigation, visible focus, ordered step links, saving/error/status text, and a 390px layout. Keep new styling route-scoped.
-- [ ] In `QueueHelp.tsx`, verify ordinary help and checkoff stay distinct; closed-session and duplicate errors are actionable; waiting requests can be cancelled; claimed requests cannot.
-- [ ] Consume the existing queue API; report backend defects to R3. Do not change queue actions or implement TA logic in the student module.
-- [ ] Ensure invalidated checkpoints no longer display stale “Verified” feedback after an answer edit, even if a previous local check message exists.
+- [x] Check keyboard navigation, visible focus, ordered step links, saving/error/status text, and a 390px layout. Keep new styling route-scoped.
+- [x] In `QueueHelp.tsx`, verify ordinary help and checkoff stay distinct; closed-session and duplicate errors are actionable; waiting requests can be cancelled; claimed requests cannot.
+- [x] Consume the existing queue API; report backend defects to R3. Do not change queue actions or implement TA logic in the student module.
+- [x] Ensure invalidated checkpoints no longer display stale “Verified” feedback after an answer edit, even if a previous local check message exists.
 
 **Done when:** a student can complete the existing seeded flow and recover from failed requests without needing developer assistance.
 
 ### R2.5 — Handoff
 
-- [ ] Run route/full checks; record save failure, refresh, navigation, automatic-check, and mobile results in `docs/routes/student.md`.
-- [ ] Give Person 1 the ordered route commits and any G1 commit already included. No edits to root docs or another route's tests.
+- [x] Run route/full checks; record save failure, refresh, navigation, automatic-check, and mobile results in `docs/routes/student.md`.
+- [x] Give Person 1 the ordered route commits and any G1 commit already included. No edits to root docs or another route's tests.
 
 ## 6. Route 3 — TA workflow
 
