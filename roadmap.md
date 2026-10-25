@@ -11,6 +11,23 @@
 - **Application ready:** the complete workflow passes on the combined branch with explicit mock/live labeling.
 - **Google track ready:** a real request to `gemma-4-26b-a4b-it` succeeds through the application and its observed behavior is recorded. Mock mode cannot satisfy this gate. Credentials were unavailable during the first pass.
 
+## Integrated status (2026-10-25)
+
+The notebook UI work (`c68dff3`, `e4d177f`, `3e9ecb9`) is combined with R4 from main (`522863f`, `4428202`). This user-requested UI pass spans authoring, student, staff, and shared presentation; it does not complete every remaining route acceptance check.
+
+- [x] Focused pages around a wide central notebook, separate collapsible page menu, persistent outline, side assistant, Material icons, and self-hosted Roboto.
+- [x] Rendered authoring cells with expandable editors and sticky Add cell / Save controls; exit warnings replace draft-status banners.
+- [x] Editable Python cells with isolated browser execution, output, Stop, and time limits. Markdown fences remain display-only. Student code is local to the mounted cell; each run starts a fresh interpreter and needs the pinned CDN runtime. No server execution or code grading.
+- [x] Student answer preservation across local pages and My labs, dirty-state reporting to shell guards, and focused/visible-step reporting. Staff sees current step and checkpoint without changing completion semantics.
+- [x] R4 conversation isolation, retry handling, context-boundary tests, and recorded live student/TA Gemma evidence integrated. Mode labels remain explicit: simulated or live.
+- [x] Combined typecheck, all 21 tests, and production build pass. Dependencies and lockfile are unchanged.
+- [ ] Finish the remaining R1–R3 acceptance work and combined G2 rehearsal. Earlier UI browser checks used an isolated database and simulated AI; they are not a complete post-merge rehearsal.
+- [ ] Complete G3 with G2 and a fresh live smoke on the demo machine. R4's successful live evidence is recorded; credentials are still machine-local.
+
+Evidence: [UI implementation and browser checks](docs/superpowers/plans/2026-10-25-notebook-ui.md), [R4 handoff and live observations](docs/routes/ai.md). R4.3's full browser-state matrix remains open as noted in its handoff. Unchecked route items below remain acceptance work, even where the UI pass already supplies part of the implementation.
+
+G1 implementation is present in `src/app/App.tsx` (direct consumer, no separate wrapper) and `Student.tsx`: optional `onDirtyChange` reports aggregated unsaved answers, clears on unmount, and guards lab changes, home navigation, and sign-out. My labs preserves the mounted notebook. The original isolated callback regression and full cancel/discard navigation matrix remain to be recorded in the R1/R2 handoffs.
+
 ## 1. Ownership rules that prevent collisions
 
 One person owns each writable surface. Everyone may read all files. Do not fix or reformat another route's files; send its owner a reproduction and requested behavior.
@@ -162,7 +179,7 @@ At minute 120, stop adding optional UI improvements. Preserve data safety, autho
 - [ ] In `tests/authoring.test.ts`, cover missing checkpoint answer references, mismatched numeric units, invalid session order, and publishing without a required checkpoint. Assert rejected publish creates no publication.
 - [ ] Improve `src/features/authoring/BlockEditor.tsx`, `SettingsEditor.tsx`, and `Authoring.tsx` to identify the offending field/block before save or publish. Focus the first error and keep entered values intact.
 - [ ] Keep authoritative Zod validation in `server/modules/labs/model.ts`. For this sprint, retain the existing API error shape and valid-draft requirement; use authoring-local validation for field presentation. Do not introduce partial-draft persistence or a cross-route error contract.
-- [ ] Verify add, edit, move, delete, and preview for markdown, code, image, answer, and checkpoint blocks. Image alt text remains mandatory; code is display-only; preview exposes only public content.
+- [ ] Verify add, edit, move, delete, and preview for markdown, code, image, answer, and checkpoint blocks. Image alt text remains mandatory; Python code cells are executable in the browser, Markdown code fences are display-only, and preview exposes only public content.
 
 **Done when:** a user can locate and correct each invalid field, save successfully, and no private data is added to public DTOs.
 
@@ -272,10 +289,10 @@ At minute 120, stop adding optional UI improvements. Preserve data safety, autho
 
 ### R4.1 — Prove server-side boundaries
 
-- [ ] Create `tests/ai.test.ts`. Inspect both context builders using fixtures with unmistakable private sentinels in keys, rubric, and notes.
-- [ ] Assert student context contains only public content, current step, own answers/completions, and its own history. Assert private sentinels and another student's messages never enter the student provider request.
-- [ ] Assert assigned TA context can contain instructor criteria; unassigned TAs cannot request it. Student/staff histories and different selected students remain separate.
-- [ ] Assert disabled student and TA settings are enforced server-side and rejected calls do not invoke the provider. AI calls must not mutate completions or requests.
+- [x] Create `tests/ai.test.ts`. Inspect both context builders using fixtures with unmistakable private sentinels in keys, rubric, and notes.
+- [x] Assert student context contains only public content, current step, own answers/completions, and its own history. Assert private sentinels and another student's messages never enter the student provider request.
+- [x] Assert assigned TA context can contain instructor criteria; unassigned TAs cannot request it. Student/staff histories and different selected students remain separate.
+- [x] Assert disabled student and TA settings are enforced server-side and rejected calls do not invoke the provider. AI calls must not mutate completions or requests.
 
 **Done when:** role separation is a data/access boundary, not a promise made only in a prompt.
 
@@ -283,27 +300,27 @@ At minute 120, stop adding optional UI improvements. Preserve data safety, autho
 
 **External dependency: authorized key plus access to `gemma-4-26b-a4b-it`. Check this at the start, not the end.**
 
-- [ ] Recheck the official provider documentation before changing calls: <https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api>.
-- [ ] Put credentials only in the ignored server environment. Set `AI_MOCK_MODE=false`; keep `GEMINI_MODEL=gemma-4-26b-a4b-it`. No frontend key or silent model substitution.
-- [ ] Make a student hint request and a TA-context request through the running application. Record date, configured model, mode, latency, and a non-sensitive response excerpt in `docs/routes/ai.md`.
-- [ ] Evaluate conceptual hints, step-specific hints, missing context, direct answer requests, “ignore the rules” messages, and instructions embedded in authored public lab text. Use a new publication for changed settings so existing snapshots remain immutable.
-- [ ] Record what the model actually did, including any answer leakage or instruction-following weakness. Adjust guidance if useful and re-run affected cases. Do not claim prompting guarantees secrecy or count a mock as live evidence.
+- [x] Recheck the official provider documentation before changing calls: <https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api>.
+- [x] Put credentials only in the ignored server environment. Set `AI_MOCK_MODE=false`; keep `GEMINI_MODEL=gemma-4-26b-a4b-it`. No frontend key or silent model substitution.
+- [x] Make a student hint request and a TA-context request through the running application. Record date, configured model, mode, latency, and a non-sensitive response excerpt in `docs/routes/ai.md`.
+- [x] Evaluate conceptual hints, step-specific hints, missing context, direct answer requests, “ignore the rules” messages, and instructions embedded in authored public lab text. Use a new publication for changed settings so existing snapshots remain immutable.
+- [x] Record what the model actually did, including any answer leakage or instruction-following weakness. Adjust guidance if useful and re-run affected cases. Do not claim prompting guarantees secrecy or count a mock as live evidence.
 
 **Done when:** real provider responses succeed through both authorized application paths and behavioral observations are recorded. If credentials/access fail, mark **G3 blocked**, record the failure without secrets, and continue R4.1/R4.3. Other routes do not wait.
 
 ### R4.3 — Finish assistant recovery and presentation
 
-- [ ] Preserve `Assistant({publicationId, studentId?, enabled})` and existing reply/history shapes; keep all UI changes within the assistant feature.
+- [x] Preserve `Assistant({publicationId, studentId?, enabled})` and existing reply/history shapes; keep all UI changes within the assistant feature.
 - [ ] Verify disabled, empty history, pending, live success, mock success, missing-key, quota/access failure, and retry states. Failed sends retain the user's question; duplicate clicks do not create duplicate successful history turns.
-- [ ] Verify switching selected students never displays a previous student's in-flight reply in the new conversation. Preserve the shell's keyed assistant composition.
-- [ ] Keep model calls behind `provider.ts`; retain bounded history/input, timeout, and per-conversation in-flight control. Defer classroom-wide quota infrastructure unless needed to resolve an observed demo blocker.
+- [x] Verify switching selected students never displays a previous student's in-flight reply in the new conversation. Preserve the shell's keyed assistant composition.
+- [x] Keep model calls behind `provider.ts`; retain bounded history/input, timeout, and per-conversation in-flight control. Defer classroom-wide quota infrastructure unless needed to resolve an observed demo blocker.
 
 **Done when:** the user knows whether an answer is mock or live and can recover from provider failures without losing the question.
 
 ### R4.4 — Handoff
 
-- [ ] Run route/full checks; record separate **application ready** and **live track ready/blocked** results in `docs/routes/ai.md`.
-- [ ] Give Person 1 ordered commits and exact local environment instructions, never the secret itself. Do not edit student/staff feature UIs to integrate the assistant.
+- [x] Run route/full checks; record separate **application ready** and **live track ready/blocked** results in `docs/routes/ai.md`.
+- [x] Give Person 1 ordered commits and exact local environment instructions, never the secret itself. Do not edit student/staff feature UIs to integrate the assistant.
 
 ## 8. G2 — Combined application verification
 
@@ -327,10 +344,10 @@ A contract freeze prevents most merge conflicts; it does not replace a combined 
 ## 9. G3 — Google-track readiness and stopping point
 
 - [ ] G2 passed.
-- [ ] R4.2 contains successful real student and TA requests using the configured Gemma model.
+- [x] R4.2 contains successful real student and TA requests using the configured Gemma model.
 - [ ] The demo machine has its own valid local key, correct model, and `AI_MOCK_MODE=false`; a final live smoke request succeeds.
 - [ ] The team can explain which data each assistant receives, that only humans approve checkoffs, and the observed limits of guidance-oriented prompting.
 
 If G3 is blocked, the deliverable is **application ready, AI mock demo only**, with the credential/model-access blocker assigned to Person 4. Do not describe it as a completed live Google-track entry.
 
-Stop adding scope after these gates. Production SSO/account recovery, staff-assignment management, partial-draft storage, drag/drop, uploads, OCR, extra timers, code execution, LMS, complex grading, WebSockets, generated classroom summaries, and advanced analytics remain the owner-assigned backlog in `plan.md`; they are not prerequisites for this hackathon finish.
+Stop adding scope after these gates. Production SSO/account recovery, staff-assignment management, partial-draft storage, drag/drop, uploads, OCR, extra timers, server-side code execution and persistent kernels, LMS, complex grading, WebSockets, generated classroom summaries, and advanced analytics remain the owner-assigned backlog in `plan.md`; they are not prerequisites for this hackathon finish.

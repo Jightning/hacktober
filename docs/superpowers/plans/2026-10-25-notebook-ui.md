@@ -38,3 +38,8 @@ Browser verification: desktop sidebars remain visible after scrolling; both togg
 - Reference: https://pyodide.org/en/stable/usage/downloading-and-deploying.html and https://pyodide.org/en/stable/usage/webworker.html. Display-only code remains available through Markdown fenced blocks.
 - Outline is a distinct persistent column; page menu moves it right when expanded. Wider desktop document, rendered authoring cells, edit-only settings, sticky Add cell and Save footer. Removed authoring workspace/Notebook headers, dirty badges and decorative separators. Existing exit guards retained. The only assistant-feature edit is punctuation in provider labels; simulated replies remain identified.
 - Browser evidence: edited Python density example prints 2.5; attempted app-session API fetch fails; infinite loop times out after 15 seconds; Stop restores editing; teacher Python draft survives Save and reload. Outline remains when navigation closes, and bottom actions remain in viewport while scrolling.
+
+
+## Integration with R4 (2026-10-25)
+
+Merged remote main through `4428202`, including `522863f`. The sole conflict was assistant mode-label punctuation: kept R4 conversation isolation, loading/retry behavior, and duplicate-send guard; labels now read Assistant (simulated) / Assistant (live). No R4 tests or backend behavior were changed. Combined typecheck, all 21 tests, and build pass. See roadmap for remaining route acceptance and G2/G3 gates. R4 live evidence is historical route evidence, not a new live request from this integration checkout.
