@@ -1,5 +1,5 @@
 import { Icon } from '../../components/ui/Icon';
-import type { EditorBlock, EditorDraft } from './types';
+import type { EditorDraft } from './types';
 import { PublicBlockView } from '../../components/lab-blocks/PublicBlockView';
 import { BlockEditor } from './BlockEditor';
 
@@ -8,13 +8,11 @@ export function NotebookEditor({
   edit,
   activeCell,
   setActiveCell,
-  add,
 }: {
   draft: EditorDraft;
   edit: (draft: EditorDraft) => void;
   activeCell: string;
   setActiveCell: (id: string) => void;
-  add: (type: EditorBlock['type']) => void;
 }) {
   return (
     <div className="stack">
@@ -31,28 +29,41 @@ export function NotebookEditor({
           <button
             className="cell-heading"
             type="button"
+            aria-label={`${activeCell === block.id ? 'Close editor for' : 'Edit'} ${block.title || 'untitled cell'}`}
             aria-expanded={activeCell === block.id}
             aria-controls={`editor-${block.id}`}
             onClick={() => setActiveCell(activeCell === block.id ? '' : block.id)}
           >
-            <span className="muted">
-              {index + 1} · {block.type}
-            </span>{' '}
-            <strong>{block.title || 'Untitled cell'}</strong>
+            <strong>{block.title.replace(/^\d+\.\s*/, '') || 'Untitled cell'}</strong>
             <Icon name={activeCell === block.id ? 'close' : 'edit'} />
           </button>
           {activeCell !== block.id && (
             <div className="cell-summary">
-              {block.type === 'markdown' ? (
-                <PublicBlockView block={block} />
-              ) : block.type === 'code' ? (
-                <PublicBlockView block={block} />
-              ) : block.type === 'image' ? (
-                block.alt || 'Image'
-              ) : block.type === 'answer' ? (
-                `${block.input === 'number' ? 'Number' : 'Short text'} response${block.units ? ` · ${block.units}` : ''}`
+              {block.type === 'answer' ? (
+                <input
+                  aria-label={block.title}
+                  placeholder={
+                    block.units ? `Student response (${block.units})` : 'Student response'
+                  }
+                  disabled
+                />
+              ) : block.type === 'checkpoint' ? (
+                <p className="muted">Awaiting verification</p>
               ) : (
-                `${block.mode === 'ta' ? 'TA approval' : 'Automatic check'} · ${block.required ? 'Required' : 'Optional'}`
+                <PublicBlockView
+                  block={block}
+                  onCodeChange={
+                    block.type === 'code'
+                      ? (code) =>
+                          edit({
+                            ...draft,
+                            blocks: draft.blocks.map((item) =>
+                              item.id === block.id ? { ...block, code } : item,
+                            ),
+                          })
+                      : undefined
+                  }
+                />
               )}
             </div>
           )}
@@ -98,14 +109,6 @@ export function NotebookEditor({
           </div>
         </section>
       ))}
-      <div className="panel row">
-        <span>Add cell</span>
-        {(['markdown', 'code', 'image', 'answer', 'checkpoint'] as const).map((type) => (
-          <button type="button" key={type} onClick={() => add(type)}>
-            {type}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

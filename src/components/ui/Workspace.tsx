@@ -3,24 +3,26 @@ import { Icon } from './Icon';
 
 export function Workspace({
   navigation,
+  outline,
   children,
   assistant,
   assistantVisible = true,
 }: {
   navigation: ReactNode;
+  outline?: ReactNode;
   children: ReactNode;
   assistant?: ReactNode;
   assistantVisible?: boolean;
 }) {
-  const [menuOpen, setMenuOpen] = useState(() => window.matchMedia('(min-width: 901px)').matches);
+  const [menuOpen, setMenuOpen] = useState(() => window.matchMedia('(min-width: 1201px)').matches);
   const [assistantOpen, setAssistantOpen] = useState(
-    () => window.matchMedia('(min-width: 1201px)').matches,
+    () => window.matchMedia('(min-width: 1501px)').matches,
   );
   const id = useId();
   const showAssistant = Boolean(assistant && assistantVisible && assistantOpen);
   return (
     <div
-      className={`notebook-workspace ${menuOpen ? 'with-navigation' : ''} ${showAssistant ? 'with-assistant' : ''}`}
+      className={`notebook-workspace ${menuOpen ? 'with-navigation' : ''} ${outline ? 'with-outline' : ''} ${showAssistant ? 'with-assistant' : ''}`}
     >
       <div className="workspace-rail workspace-rail-left">
         <button
@@ -43,6 +45,11 @@ export function Workspace({
       >
         {navigation}
       </aside>
+      {outline && (
+        <aside className="workspace-outline-column" aria-label="Document outline">
+          {outline}
+        </aside>
+      )}
       <div className="workspace-document">{children}</div>
       {assistant && (
         <aside

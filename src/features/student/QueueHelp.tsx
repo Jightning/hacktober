@@ -60,7 +60,7 @@ export function QueueHelp({
             <strong>
               {active.state === 'waiting' ? 'Waiting for a TA' : 'A TA has claimed your request'}
             </strong>{' '}
-            · {active.type}
+            , {active.type}
           </p>
           <p>{active.description}</p>
           <p className="muted">Requested {new Date(active.createdAt).toLocaleTimeString()}</p>

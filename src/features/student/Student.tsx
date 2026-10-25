@@ -80,46 +80,44 @@ export function Student({
   return (
     <Workspace
       navigation={
-        <>
-          <nav className="workspace-nav" aria-label="Student pages">
-            {onOpenLabs && <button onClick={onOpenLabs}>My labs</button>}
-            {(
-              [
-                ['notebook', 'Notebook'],
-                ['progress', 'Progress'],
-                ['help', 'Queue'],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                aria-current={page === id ? 'page' : undefined}
-                onClick={() => setPage(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-          <nav className="workspace-outline" aria-label="Notebook outline">
-            <h2>Outline</h2>
-            {lab.blocks.map((block, index) => (
-              <a
-                key={block.id}
-                href={`#block-${block.id}`}
-                onClick={() => {
-                  setPage('notebook');
-                  void visit(block.id);
-                  requestAnimationFrame(() =>
-                    document
-                      .getElementById(`block-${block.id}`)
-                      ?.scrollIntoView({ block: 'start' }),
-                  );
-                }}
-              >
-                {index + 1}. {block.title.replace(/^\d+\.\s*/, '')}
-              </a>
-            ))}
-          </nav>
-        </>
+        <nav className="workspace-nav" aria-label="Student pages">
+          {onOpenLabs && <button onClick={onOpenLabs}>My labs</button>}
+          {(
+            [
+              ['notebook', 'Notebook'],
+              ['progress', 'Progress'],
+              ['help', 'Queue'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              aria-current={page === id ? 'page' : undefined}
+              onClick={() => setPage(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      }
+      outline={
+        <nav className="workspace-outline" aria-label="Notebook outline">
+          <h2>Outline</h2>
+          {lab.blocks.map((block, index) => (
+            <a
+              key={block.id}
+              href={`#block-${block.id}`}
+              onClick={() => {
+                setPage('notebook');
+                void visit(block.id);
+                requestAnimationFrame(() =>
+                  document.getElementById(`block-${block.id}`)?.scrollIntoView({ block: 'start' }),
+                );
+              }}
+            >
+              {index + 1}. {block.title.replace(/^\d+\.\s*/, '')}
+            </a>
+          ))}
+        </nav>
       }
       assistant={renderAssistant({ enabled: lab.settings.studentAI })}
     >

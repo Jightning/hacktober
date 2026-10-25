@@ -66,7 +66,7 @@ export function Assistant({
         {messages.map((m, i) => (
           <div className={`message ${m.role}`} key={i}>
             <strong>
-              {m.role === 'user' ? 'You' : m.mock ? 'Assistant · MOCK' : 'Assistant · Gemma'}
+              {m.role === 'user' ? 'You' : m.mock ? 'Assistant (simulated)' : 'Assistant (Gemma)'}
             </strong>
             <p>{m.text}</p>
           </div>

@@ -59,7 +59,7 @@ export function StudentDetail({ data, student }: { data: StaffState; student: St
         )
         .map(([id, text]) => (
           <div className="private-note" key={id}>
-            <strong>{data.lab.blocks.find((b) => b.id === id)?.title} · Instructor notes</strong>
+            <strong>{data.lab.blocks.find((b) => b.id === id)?.title}, Instructor notes</strong>
             <p>{text}</p>
           </div>
         ))}

@@ -21,7 +21,6 @@ export function BlockEditor({
   return (
     <section className="panel stack">
       <div className="row between">
-        <strong>{block.type}</strong>
         <div className="row">
           <button
             type="button"
@@ -63,22 +62,18 @@ export function BlockEditor({
       </label>
       {block.type === 'markdown' && (
         <label>
-          Markdown content
+          Content
           <textarea rows={5} value={block.text} onChange={(e) => patch({ text: e.target.value })} />
         </label>
       )}
       {block.type === 'code' && (
         <>
           <label>
-            Language label
-            <input value={block.language} onChange={(e) => patch({ language: e.target.value })} />
-          </label>
-          <label>
-            Code (display only)
+            Python code
             <textarea
               rows={5}
               value={block.code}
-              onChange={(e) => patch({ code: e.target.value })}
+              onChange={(e) => patch({ code: e.target.value, language: 'python' })}
             />
           </label>
         </>

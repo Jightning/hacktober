@@ -1,0 +1,19 @@
+.python-cell textarea {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  tab-size: 4;
+  background: #fafafd;
+  padding: 16px;
+}
+.python-output {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 360px;
+  overflow-y: auto;
+  margin: 0;
+}
+.python-cell [role='alert'] {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

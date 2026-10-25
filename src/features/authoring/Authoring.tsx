@@ -75,12 +75,12 @@ export function Authoring({
   function edit(next: EditorDraft) {
     setDraft(next);
     setDirty(true);
-    setStatus('Unsaved draft changes');
+    setStatus('');
   }
   async function save(publish = false) {
     setBusy(true);
     setError('');
-    setStatus('Saving…');
+    setStatus('');
     try {
       await send(`/labs/${id}`, draft, 'PUT');
       setDirty(false);
@@ -90,7 +90,7 @@ export function Authoring({
         setLink(`${window.location.origin}/lab/${pub.id}`);
         await publicationChanged(pub.id);
         setStatus('Published a new snapshot. Existing student links keep their content.');
-      } else setStatus('Draft saved. Published content is unchanged.');
+      }
     } catch (e) {
       setError((e as Error).message);
       setStatus('');
@@ -107,7 +107,7 @@ export function Authoring({
       setLabs((old) => [...old, { id: result.id, title: 'Untitled lab' }]);
       setId(result.id);
       setPage('Notebook');
-      setStatus('New draft created.');
+      setStatus('');
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -121,7 +121,7 @@ export function Authoring({
       type === 'markdown'
         ? { ...base, type, text: '' }
         : type === 'code'
-          ? { ...base, type, code: '', language: 'text' }
+          ? { ...base, type, code: 'print("Hello, world!")', language: 'python' }
           : type === 'image'
             ? { ...base, type, url: '', alt: '' }
             : type === 'answer'
@@ -146,56 +146,54 @@ export function Authoring({
   return (
     <Workspace
       navigation={
-        <>
-          <nav className="workspace-nav" aria-label="Teacher pages">
-            {(['Labs', 'Notebook', 'Preview', 'Settings', 'Publish'] as const).map((item) => (
+        <nav className="workspace-nav" aria-label="Teacher pages">
+          {(['Labs', 'Notebook', 'Preview', 'Settings', 'Publish'] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-current={page === item ? 'page' : undefined}
+              disabled={busy || (item !== 'Labs' && !draft)}
+              onClick={() => setPage(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </nav>
+      }
+      outline={
+        draft &&
+        page !== 'Labs' && (
+          <nav className="workspace-outline" aria-label="Notebook outline">
+            <h2>Outline</h2>
+            {draft.blocks.length === 0 && <p className="muted">No cells yet.</p>}
+            {draft.blocks.map((block, index) => (
               <button
-                key={item}
                 type="button"
-                aria-current={page === item ? 'page' : undefined}
-                disabled={busy || (item !== 'Labs' && !draft)}
-                onClick={() => setPage(item)}
+                key={block.id}
+                aria-current={
+                  activeCell === block.id && page === 'Notebook' ? 'location' : undefined
+                }
+                onClick={() => {
+                  setPage('Notebook');
+                  setActiveCell(block.id);
+                }}
               >
-                {item}
+                {index + 1}. {block.title.replace(/^\d+\.\s*/, '') || 'Untitled cell'}
               </button>
             ))}
           </nav>
-          {draft && page !== 'Labs' && (
-            <nav className="workspace-outline" aria-label="Notebook outline">
-              <h2>Outline</h2>
-              {draft.blocks.length === 0 && <p className="muted">No cells yet.</p>}
-              {draft.blocks.map((block, index) => (
-                <button
-                  type="button"
-                  key={block.id}
-                  aria-current={
-                    activeCell === block.id && page === 'Notebook' ? 'location' : undefined
-                  }
-                  onClick={() => {
-                    setPage('Notebook');
-                    setActiveCell(block.id);
-                  }}
-                >
-                  {index + 1}. {block.title.replace(/^\d+\.\s*/, '') || block.type}
-                </button>
-              ))}
-            </nav>
-          )}
-        </>
+        )
       }
     >
       <section className="editor stack">
         <div className="page-heading">
           <div>
-            <p className="eyebrow">Teacher workspace</p>
             <h1>{page === 'Labs' ? 'Labs' : draft?.title || 'Notebook'}</h1>
           </div>
-          {page === 'Labs' ? (
+          {page === 'Labs' && (
             <button className="primary" onClick={() => void create()} disabled={busy}>
               New lab
             </button>
-          ) : (
-            <span className="muted">{dirty ? 'Unsaved changes' : 'Draft saved'}</span>
           )}
         </div>
         <Feedback error={error} status={status} />
@@ -205,9 +203,6 @@ export function Authoring({
               <div className="panel row between" key={lab.id}>
                 <div>
                   <h2>{lab.id === id && draft ? draft.title : lab.title}</h2>
-                  <span className="muted">
-                    Draft{lab.id === id && dirty ? ' · Unsaved changes' : ''}
-                  </span>
                 </div>
                 <button onClick={() => openLab(lab.id)} disabled={busy}>
                   Open notebook
@@ -233,21 +228,12 @@ export function Authoring({
             }}
           >
             <fieldset className="form-body stack" disabled={busy}>
-              {(page === 'Notebook' || page === 'Settings') && (
-                <div className="toolbar">
-                  <h2>{page}</h2>
-                  <button className="primary" type="submit">
-                    {busy ? 'Saving…' : 'Save draft'}
-                  </button>
-                </div>
-              )}
               {page === 'Notebook' && (
                 <NotebookEditor
                   draft={draft}
                   edit={edit}
                   activeCell={activeCell}
                   setActiveCell={setActiveCell}
-                  add={add}
                 />
               )}
               {page === 'Settings' && (
@@ -258,13 +244,12 @@ export function Authoring({
               )}
               {page === 'Preview' && (
                 <div className="stack">
-                  <p className="notice">Student preview · responses and checks are inactive.</p>
+                  <p className="notice">Student preview. Responses and checks are inactive.</p>
                   {draft.blocks.length === 0 && (
                     <p className="muted">Add cells in Notebook to preview your lab.</p>
                   )}
-                  {draft.blocks.map((block, index) => (
+                  {draft.blocks.map((block) => (
                     <section className="panel notebook-cell" key={block.id}>
-                      <p className="eyebrow">Cell {index + 1}</p>
                       <h3>{block.title}</h3>
                       <PublicBlockView block={block} />
                     </section>
@@ -306,6 +291,31 @@ export function Authoring({
                     </div>
                   )}
                 </section>
+              )}
+              {(page === 'Notebook' || page === 'Settings') && (
+                <div className="authoring-actions">
+                  {page === 'Notebook' && (
+                    <div className="row" aria-label="Add cell">
+                      <span>Add cell</span>
+                      {(
+                        [
+                          ['markdown', 'Text'],
+                          ['code', 'Python'],
+                          ['image', 'Image'],
+                          ['answer', 'Answer'],
+                          ['checkpoint', 'Checkpoint'],
+                        ] as const
+                      ).map(([type, label]) => (
+                        <button type="button" key={type} onClick={() => add(type)}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <button className="primary" type="submit">
+                    {busy ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
               )}
             </fieldset>
           </form>

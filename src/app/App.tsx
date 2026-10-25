@@ -150,7 +150,7 @@ export function App() {
                       >
                         {publications.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.title} · {new Date(p.publishedAt).toLocaleString()}
+                            {p.title}, {new Date(p.publishedAt).toLocaleString()}
                           </option>
                         ))}
                       </select>

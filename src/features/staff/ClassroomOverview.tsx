@@ -22,7 +22,7 @@ export function ClassroomOverview({
             <div className="row between">
               <span>{c.title}</span>
               <span>
-                {c.verified}/{c.total} verified · {c.total - c.verified} remaining
+                {c.verified}/{c.total} verified, {c.total - c.verified} remaining
               </span>
             </div>
             <progress

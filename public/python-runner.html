@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net/pyodide/v0.29.5/full/; worker-src blob:; connect-src https://cdn.jsdelivr.net/pyodide/v0.29.5/full/; base-uri 'none'; form-action 'none'">
+<title>Python runner</title>
+<script>
+// This document runs in an opaque-origin sandbox. Python never runs in the app origin.
+let worker;
+let timer;
+let outputLength = 0;
+let started = false;
+const report = (type, text = '') => parent.postMessage({ type, text }, '*');
+function finish(type, text) {
+  clearTimeout(timer);
+  if (worker) worker.terminate();
+  worker = undefined;
+  report(type, text);
+}
+onmessage = (event) => {
+  if (event.source !== parent) return;
+  if (event.data?.type === 'stop') { finish('done', 'Stopped'); return; }
+  if (event.data?.type !== 'run' || typeof event.data.code !== 'string' || event.data.code.length > 20000 || worker) return;
+  outputLength = 0;
+  started = false;
+  const source = `
+    importScripts('https://cdn.jsdelivr.net/pyodide/v0.29.5/full/pyodide.js');
+    onmessage = async (event) => {
+      const emit = (type, text = '') => postMessage({type, text});
+      try {
+        const python = await loadPyodide({
+          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.29.5/full/',
+          stdout: (text) => emit('output', text + '\\n'),
+          stderr: (text) => emit('output', text + '\\n'),
+          stdin: () => { throw new Error('Interactive input is not supported. Set input values in your code.'); }
+        });
+        emit('running');
+        const result = await python.runPythonAsync(event.data);
+        if (result !== undefined) emit('output', String(result) + '\\n');
+        if (result && typeof result.destroy === 'function') result.destroy();
+        emit('done');
+      } catch (error) { emit('error', String(error)); }
+    };
+  `;
+  const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+  worker = new Worker(url);
+  URL.revokeObjectURL(url);
+  timer = setTimeout(() => finish('error', 'Python loading timed out. Check your connection and retry.'), 60000);
+  worker.onmessage = ({ data }) => {
+    if (!worker || !data || typeof data.type !== 'string') return;
+    if (data.type === 'running' && !started) {
+      started = true;
+      clearTimeout(timer);
+      timer = setTimeout(() => finish('error', 'Execution timed out after 15 seconds.'), 15000);
+      report('running');
+    } else if (data.type === 'output' && typeof data.text === 'string') {
+      const remaining = 20000 - outputLength;
+      report('output', data.text.slice(0, remaining));
+      outputLength += data.text.length;
+      if (outputLength >= 20000) finish('error', 'Output limit reached.');
+    } else if (data.type === 'done') finish('done', 'Finished');
+    else if (data.type === 'error' && typeof data.text === 'string') finish('error', data.text.slice(0, 4000));
+  };
+  worker.onerror = () => finish('error', 'Python could not start. Check your connection and retry.');
+  worker.postMessage(event.data.code);
+};
+</script>

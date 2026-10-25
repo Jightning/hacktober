@@ -40,12 +40,12 @@ export function QueueList({
           <p>{lab.blocks.find((b) => b.id === r.blockId)?.title}</p>
           <p>{r.description}</p>
           <p className="muted">
-            {r.state} · {Math.max(0, Math.floor((Date.now() - Date.parse(r.createdAt)) / 60000))}{' '}
-            min since arrival
+            {r.state}, {Math.max(0, Math.floor((Date.now() - Date.parse(r.createdAt)) / 60000))} min
+            since arrival
             {r.claimedBy === actorId
-              ? ' · claimed by you'
+              ? ', claimed by you'
               : r.claimedBy
-                ? ' · claimed by another TA'
+                ? ', claimed by another TA'
                 : ''}
           </p>
           <div className="row">

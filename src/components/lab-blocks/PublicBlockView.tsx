@@ -1,6 +1,13 @@
+import { PythonCell } from './PythonCell';
 import Markdown from 'react-markdown';
 import type { PublicBlock } from '../../../shared/contracts';
-export function PublicBlockView({ block }: { block: PublicBlock }) {
+export function PublicBlockView({
+  block,
+  onCodeChange,
+}: {
+  block: PublicBlock;
+  onCodeChange?: (code: string) => void;
+}) {
   switch (block.type) {
     case 'markdown':
       return (
@@ -9,14 +16,7 @@ export function PublicBlockView({ block }: { block: PublicBlock }) {
         </div>
       );
     case 'code':
-      return (
-        <figure>
-          <figcaption>{block.language || 'Code'} · display only</figcaption>
-          <pre>
-            <code>{block.code}</code>
-          </pre>
-        </figure>
-      );
+      return <PythonCell code={block.code} title={block.title} onCodeChange={onCodeChange} />;
     case 'image':
       return <img className="lab-image" src={block.url} alt={block.alt} />;
     case 'answer':
@@ -29,7 +29,7 @@ export function PublicBlockView({ block }: { block: PublicBlock }) {
     case 'checkpoint':
       return (
         <p>
-          {block.mode === 'ta' ? 'TA approval' : 'Automatic check'} ·{' '}
+          {block.mode === 'ta' ? 'TA approval' : 'Automatic check'}{' '}
           {block.required ? 'Required' : 'Optional'}
         </p>
       );
