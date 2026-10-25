@@ -2,6 +2,12 @@
 
 A small, runnable teacher → student → TA lab workflow for a four-person, three-hour hackathon. React/TypeScript + Vite, Express/TypeScript, SQLite, and a server-side Google Gemma adapter. Plain component-based UI; customize colors, spacing and borders in `src/styles/theme.css`.
 
+## Current integration status — 2026-10-25
+
+R1–R4 are integrated: authoring validation and publish review, reliable student saves/navigation, TA queue filtering and checkoffs, and isolated assistant conversations with input/reply safeguards. The combined checkout passes typecheck, all **46 tests**, and production build. A fresh teacher → joined student → TA browser rehearsal passed; real student and assigned-TA requests to `gemma-4-26b-a4b-it` also returned HTTP 200 with `mock: false` on the final code.
+
+See [combined evidence](docs/routes/integration.md) and the route handoffs for exact checks and limits. Credentials stay in each machine's ignored server `.env`; remote main never contains a key. With `AI_MOCK_MODE=true`, guidance is explicitly simulated. The ownership/continuation prompts and baseline observations below record earlier planning; use `roadmap.md` and the dated handoffs for current acceptance status. Remaining legacy G2/G3 checklist items are not implied complete by these smoke results.
+
 ## Run locally
 
 Use Node **22.13+** (verified with Node 26.7). One package and lockfile:

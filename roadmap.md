@@ -13,18 +13,18 @@
 
 ## Integrated status (2026-10-25)
 
-The notebook UI work (`c68dff3`, `e4d177f`, `3e9ecb9`) is combined with R4 from main (`522863f`, `4428202`). This user-requested UI pass spans authoring, student, staff, and shared presentation; it does not complete every remaining route acceptance check.
+R1/R2 remote main `1333147`, R4 tip `e29598b`, and R3 implementation `4852b18` are now combined. R4 was integrated before R3. All four routes pass the combined automated gate and the teacher → student → TA browser workflow; fresh real student and TA Gemma requests also succeeded. See [combined integration evidence](docs/routes/integration.md) for scope, mode labels and remaining checklist limits.
 
 - [x] Focused pages around a wide central notebook, separate collapsible page menu, persistent outline, side assistant, Material icons, and self-hosted Roboto.
 - [x] Rendered authoring cells with expandable editors and sticky Add cell / Save controls; exit warnings replace draft-status banners.
 - [x] Editable Python cells with isolated browser execution, output, Stop, and time limits. Markdown fences remain display-only. Student code is local to the mounted cell; each run starts a fresh interpreter and needs the pinned CDN runtime. No server execution or code grading.
 - [x] Student answer preservation across local pages and My labs, dirty-state reporting to shell guards, and focused/visible-step reporting. Staff sees current step and checkpoint without changing completion semantics.
 - [x] R4 conversation isolation, retry handling, context-boundary tests, and recorded live student/TA Gemma evidence integrated. Mode labels remain explicit: simulated or live.
-- [x] Combined typecheck, all 21 tests, and production build pass. Dependencies and lockfile are unchanged.
-- [ ] Finish the remaining R1/R3 acceptance work and combined G2 rehearsal. R2 is complete; see its handoff below. Earlier UI browser checks used an isolated database and simulated AI; they are not a complete post-merge rehearsal.
-- [ ] Complete G3 with G2 and a fresh live smoke on the demo machine. R4's successful live evidence is recorded; credentials are still machine-local.
+- [x] Combined typecheck, all 46 tests, and production build pass. Dependencies and lockfile are unchanged.
+- [x] Integrate R1–R4 and rehearse the combined core workflow. All 46 tests and the production build pass; combined browser evidence is in `docs/routes/integration.md`. Specific unchecked legacy acceptance items and the full G2 checklist below remain separately tracked.
+- [ ] Complete the remaining G2/G3 checklist. Fresh student and TA live smoke requests on this machine succeeded with the final safeguards; the key remains machine-local.
 
-Evidence: [UI implementation and browser checks](docs/superpowers/plans/2026-10-25-notebook-ui.md), [R4 handoff and live observations](docs/routes/ai.md). R4.3's full browser-state matrix remains open as noted in its handoff. Unchecked route items below remain acceptance work, even where the UI pass already supplies part of the implementation.
+Evidence: [UI implementation and browser checks](docs/superpowers/plans/2026-10-25-notebook-ui.md), [R4 handoff and live observations](docs/routes/ai.md). R4.3's full browser-state matrix is complete as recorded in its updated handoff. Unchecked route items below remain acceptance work, even where the UI pass already supplies part of the implementation.
 
 G1 implementation is present in `src/app/App.tsx` (direct consumer, no separate wrapper) and `Student.tsx`: optional `onDirtyChange` reports aggregated unsaved answers, clears on unmount, and guards lab changes, home navigation, and sign-out. My labs preserves the mounted notebook. R2 has now verified the full cancel/discard navigation matrix on integrated main and recorded it in docs/routes/student.md. The original isolated callback regression remains an R1 handoff item.
 
@@ -351,7 +351,7 @@ A contract freeze prevents most merge conflicts; it does not replace a combined 
 
 - [ ] G2 passed.
 - [x] R4.2 contains successful real student and TA requests using the configured Gemma model.
-- [ ] The demo machine has its own valid local key, correct model, and `AI_MOCK_MODE=false`; a final live smoke request succeeds.
+- [x] This machine has its own valid local key, correct model, and `AI_MOCK_MODE=false`; final student and assigned-TA live smoke requests succeeded. Configure credentials separately on any other demo machine.
 - [ ] The team can explain which data each assistant receives, that only humans approve checkoffs, and the observed limits of guidance-oriented prompting.
 
 If G3 is blocked, the deliverable is **application ready, AI mock demo only**, with the credential/model-access blocker assigned to Person 4. Do not describe it as a completed live Google-track entry.
