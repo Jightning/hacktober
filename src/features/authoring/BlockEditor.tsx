@@ -54,6 +54,7 @@ export function BlockEditor({
       <label>
         Block title
         <input
+          data-field="title"
           value={block.title}
           onChange={(e) => patch({ title: e.target.value })}
           required
@@ -63,7 +64,12 @@ export function BlockEditor({
       {block.type === 'markdown' && (
         <label>
           Content
-          <textarea rows={5} value={block.text} onChange={(e) => patch({ text: e.target.value })} />
+          <textarea
+            rows={5}
+            data-field="text"
+            value={block.text}
+            onChange={(e) => patch({ text: e.target.value })}
+          />
         </label>
       )}
       {block.type === 'code' && (
@@ -72,6 +78,7 @@ export function BlockEditor({
             Python code
             <textarea
               rows={5}
+              data-field="code"
               value={block.code}
               onChange={(e) => patch({ code: e.target.value, language: 'python' })}
             />
@@ -85,13 +92,19 @@ export function BlockEditor({
             <input
               type="url"
               required
+              data-field="url"
               value={block.url}
               onChange={(e) => patch({ url: e.target.value })}
             />
           </label>
           <label>
             Alternative text
-            <input required value={block.alt} onChange={(e) => patch({ alt: e.target.value })} />
+            <input
+              required
+              data-field="alt"
+              value={block.alt}
+              onChange={(e) => patch({ alt: e.target.value })}
+            />
           </label>
         </>
       )}
@@ -106,7 +119,11 @@ export function BlockEditor({
           </label>
           <label>
             Units label (optional)
-            <input value={block.units} onChange={(e) => patch({ units: e.target.value })} />
+            <input
+              data-field="units"
+              value={block.units}
+              onChange={(e) => patch({ units: e.target.value })}
+            />
           </label>
         </div>
       )}
@@ -128,7 +145,7 @@ export function BlockEditor({
               <option value="automatic">Automatic validation</option>
             </select>
           </label>
-          <fieldset>
+          <fieldset data-field="answerIds" tabIndex={-1}>
             <legend>
               Relevant answer blocks{block.mode === 'automatic' ? ' (choose one)' : ''}
             </legend>
@@ -165,6 +182,7 @@ export function BlockEditor({
               Private rubric / expected outcome
               <textarea
                 required
+                data-field="rubric"
                 value={block.rubric || ''}
                 onChange={(e) => patch({ rubric: e.target.value })}
               />
@@ -174,6 +192,7 @@ export function BlockEditor({
               <label>
                 Private rule
                 <select
+                  data-field="rule"
                   value={block.rule?.kind || 'exact'}
                   onChange={(e) =>
                     patch({
@@ -194,13 +213,18 @@ export function BlockEditor({
                   required
                   type={block.rule?.kind === 'numeric' ? 'number' : 'text'}
                   step="any"
-                  value={block.rule?.expected ?? ''}
+                  data-field="expected"
+                  value={
+                    block.rule?.kind === 'numeric' && !Number.isFinite(block.rule.expected)
+                      ? ''
+                      : (block.rule?.expected ?? '')
+                  }
                   onChange={(e) =>
                     patch({
                       rule: {
                         ...(block.rule || { kind: 'exact' }),
                         expected:
-                          block.rule?.kind === 'numeric' ? Number(e.target.value) : e.target.value,
+                          block.rule?.kind === 'numeric' ? e.target.valueAsNumber : e.target.value,
                       },
                     })
                   }
@@ -214,9 +238,10 @@ export function BlockEditor({
                       type="number"
                       min="0"
                       step="any"
-                      value={block.rule.tolerance}
+                      data-field="tolerance"
+                      value={Number.isFinite(block.rule.tolerance) ? block.rule.tolerance : ''}
                       onChange={(e) =>
-                        patch({ rule: { ...block.rule, tolerance: Number(e.target.value) } })
+                        patch({ rule: { ...block.rule, tolerance: e.target.valueAsNumber } })
                       }
                     />
                   </label>
@@ -224,6 +249,7 @@ export function BlockEditor({
                     Required units
                     <input
                       required
+                      data-field="ruleUnits"
                       value={block.rule.units}
                       onChange={(e) => patch({ rule: { ...block.rule, units: e.target.value } })}
                     />
@@ -239,6 +265,7 @@ export function BlockEditor({
         <label>
           Notes
           <textarea
+            data-field="instructorNotes"
             value={block.instructorNotes || ''}
             onChange={(e) => patch({ instructorNotes: e.target.value })}
           />

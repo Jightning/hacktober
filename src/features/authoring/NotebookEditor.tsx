@@ -20,6 +20,7 @@ export function NotebookEditor({
         Lab title
         <input
           required
+          data-field="title"
           value={draft.title}
           onChange={(event) => edit({ ...draft, title: event.target.value })}
         />

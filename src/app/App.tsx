@@ -10,6 +10,7 @@ import { Staff } from '../features/staff/Staff';
 import { Workspace } from '../components/ui/Workspace';
 import { Icon } from '../components/ui/Icon';
 import { Feedback } from '../components/ui/Feedback';
+import { canLeaveWorkspace } from './navigationGuard';
 export function App() {
   const invitation = window.location.pathname.match(/^\/lab\/([^/]+)\/?$/)?.[1] || null;
   const [user, setUser] = useState<Identity | null>(null);
@@ -22,7 +23,7 @@ export function App() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const reportDirty = useCallback((value: boolean) => setDirty(value), []);
   function canLeave() {
-    return !dirty || window.confirm('Leave without saving your changes?');
+    return canLeaveWorkspace(dirty, (message) => window.confirm(message));
   }
   async function loadPublications() {
     const list = await api<PublicationLink[]>('/publications');

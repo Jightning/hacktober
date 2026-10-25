@@ -1,6 +1,7 @@
 import type { Settings } from '../../../shared/contracts';
 function localTime(iso: string) {
   const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '';
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 export function SettingsEditor({
@@ -48,7 +49,7 @@ export function SettingsEditor({
             required
             value={localTime(value.opensAt)}
             onChange={(e) => {
-              if (e.target.value) update({ opensAt: new Date(e.target.value).toISOString() });
+              update({ opensAt: e.target.value ? new Date(e.target.value).toISOString() : '' });
             }}
           />
         </label>
@@ -57,9 +58,10 @@ export function SettingsEditor({
           <input
             type="datetime-local"
             required
+            data-field="settings.closesAt"
             value={localTime(value.closesAt)}
             onChange={(e) => {
-              if (e.target.value) update({ closesAt: new Date(e.target.value).toISOString() });
+              update({ closesAt: e.target.value ? new Date(e.target.value).toISOString() : '' });
             }}
           />
         </label>
