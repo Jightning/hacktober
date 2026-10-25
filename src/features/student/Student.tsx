@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { StudentState } from '../../../shared/contracts';
-import { usePolling } from '../../lib/usePolling';
+import { useStudentState } from './useStudentState';
 import { send } from '../../lib/api';
 import { PublicBlockView } from '../../components/lab-blocks/PublicBlockView';
 import { Feedback } from '../../components/ui/Feedback';
@@ -22,13 +21,24 @@ export function Student({
   onOpenLabs?: () => void;
   renderAssistant: (options: { enabled: boolean; studentId?: string }) => ReactNode;
 }) {
-  const {
-    data,
-    error: loadError,
-    refresh,
-  } = usePolling<StudentState>(`/publications/${publicationId}/student`);
+  const { data, error: loadError, refresh } = useStudentState(publicationId);
   const [page, setPage] = useState<'notebook' | 'progress' | 'help'>('notebook');
   const [dirtyAnswers, setDirtyAnswers] = useState<Record<string, boolean>>({});
+  const [pendingAnswers, setPendingAnswers] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!data) return;
+    setPendingAnswers((old) => {
+      const remaining = Object.fromEntries(
+        Object.entries(old).filter(
+          ([id, value]) =>
+            !data.progress.answers.some(
+              (answer) => answer.blockId === id && answer.value === value,
+            ),
+        ),
+      );
+      return Object.keys(remaining).length === Object.keys(old).length ? old : remaining;
+    });
+  }, [data]);
   const dirty = Object.values(dirtyAnswers).some(Boolean);
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -44,7 +54,14 @@ export function Student({
     return () => window.removeEventListener('beforeunload', guard);
   }, [dirty]);
   const [error, setError] = useState('');
-  const [feedback, setFeedback] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<
+    Record<string, { text: string; passed: boolean; answers: string }>
+  >({});
+  function answerVersion(answerIds: string[]) {
+    return JSON.stringify(
+      data?.progress.answers.filter((answer) => answerIds.includes(answer.blockId)),
+    );
+  }
   const [checking, setChecking] = useState('');
   const { visit, focusBlock, blurBlock } = useCurrentStep({
     publicationId,
@@ -53,13 +70,19 @@ export function Student({
     onError: setError,
   });
   async function check(blockId: string) {
+    const block = data?.lab.blocks.find((block) => block.id === blockId);
+    if (block?.type !== 'checkpoint') return;
+    const answers = answerVersion(block.answerIds);
     setChecking(blockId);
     setError('');
     try {
-      const result = await send<{ feedback: string }>(
+      const result = await send<{ feedback: string; passed: boolean }>(
         `/publications/${publicationId}/checks/${blockId}`,
       );
-      setFeedback((old) => ({ ...old, [blockId]: result.feedback }));
+      setFeedback((old) => ({
+        ...old,
+        [blockId]: { text: result.feedback, passed: result.passed, answers },
+      }));
       await refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -74,7 +97,14 @@ export function Student({
         <p role="status">{loadError ? 'Retrying connection…' : 'Loading lab…'}</p>
       </>
     );
-  const { lab, progress } = data;
+  const { lab } = data;
+  const progress = {
+    ...data.progress,
+    completions: data.progress.completions.filter((completion) => {
+      const block = lab.blocks.find((block) => block.id === completion.blockId);
+      return block?.type !== 'checkpoint' || !block.answerIds.some((id) => id in pendingAnswers);
+    }),
+  };
   const required = lab.blocks.filter((b) => b.type === 'checkpoint' && b.required);
   const done = required.filter((b) => progress.completions.some((c) => c.blockId === b.id)).length;
   return (
@@ -140,6 +170,19 @@ export function Student({
       >
         {lab.blocks.map((b, index) => {
           const completion = progress.completions.find((c) => c.blockId === b.id);
+          const unsaved = b.type === 'checkpoint' && b.answerIds.some((id) => dirtyAnswers[id]);
+          const awaitingRefresh =
+            b.type === 'checkpoint' && b.answerIds.some((id) => id in pendingAnswers);
+          const result = feedback[b.id];
+          const currentFeedback =
+            b.type === 'checkpoint' &&
+            !unsaved &&
+            !awaitingRefresh &&
+            result &&
+            result.answers === answerVersion(b.answerIds) &&
+            (!result.passed || completion)
+              ? result.text
+              : '';
           return (
             <section
               id={`block-${b.id}`}
@@ -163,7 +206,10 @@ export function Student({
                   publicationId={publicationId}
                   block={b}
                   saved={progress.answers.find((a) => a.blockId === b.id)}
-                  onSaved={refresh}
+                  onSaved={async (value) => {
+                    setPendingAnswers((old) => ({ ...old, [b.id]: value.trim() }));
+                    await refresh();
+                  }}
                   onDirtyChange={(answerDirty) =>
                     setDirtyAnswers((old) =>
                       old[b.id] === answerDirty ? old : { ...old, [b.id]: answerDirty },
@@ -175,13 +221,20 @@ export function Student({
               )}
               {b.type === 'checkpoint' && (
                 <>
-                  <p className={completion ? 'verified' : 'muted'}>
-                    {completion
-                      ? `Verified by ${completion.method === 'ta' ? 'TA' : 'automatic check'}`
-                      : 'Not verified'}
+                  <p className={completion && !unsaved ? 'verified' : 'muted'}>
+                    {unsaved
+                      ? 'Submit your changed answers before checking again'
+                      : awaitingRefresh
+                        ? 'Answer saved, refreshing checkpoint status'
+                        : completion
+                          ? `Verified by ${completion.method === 'ta' ? 'TA' : 'automatic check'}`
+                          : 'Not verified'}
                   </p>
                   {b.mode === 'automatic' ? (
-                    <button disabled={Boolean(checking)} onClick={() => void check(b.id)}>
+                    <button
+                      disabled={Boolean(checking) || unsaved || awaitingRefresh}
+                      onClick={() => void check(b.id)}
+                    >
                       {checking === b.id ? 'Checking…' : 'Check my answer'}
                     </button>
                   ) : (
@@ -189,7 +242,7 @@ export function Student({
                       Use “Queue” and choose “Checkpoint checkoff” when ready.
                     </p>
                   )}
-                  <Feedback status={feedback[b.id]} />
+                  <Feedback status={currentFeedback} />
                 </>
               )}
             </section>

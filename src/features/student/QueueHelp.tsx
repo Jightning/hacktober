@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { PublicLab, QueueRequest } from '../../../shared/contracts';
 import { send } from '../../lib/api';
 import { Feedback } from '../../components/ui/Feedback';
@@ -18,6 +18,7 @@ export function QueueHelp({
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
   const active = requests.find((r) => r.state === 'waiting' || r.state === 'claimed');
   const latest = requests.at(-1);
   const blocks =
@@ -33,6 +34,8 @@ export function QueueHelp({
     Date.now() >= Date.parse(lab.settings.opensAt) &&
     Date.now() <= Date.parse(lab.settings.closesAt);
   async function act(cancel = false) {
+    if (sending.current) return;
+    sending.current = true;
     setBusy(true);
     setError('');
     try {
@@ -46,7 +49,14 @@ export function QueueHelp({
       if (!cancel) setDescription('');
     } catch (e) {
       setError((e as Error).message);
+      // A duplicate or claim conflict may mean polling has not caught up yet.
+      try {
+        await onChange();
+      } catch {
+        // The student polling hook displays refresh errors and retries automatically.
+      }
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   }
@@ -59,7 +69,7 @@ export function QueueHelp({
           <p role="status">
             <strong>
               {active.state === 'waiting' ? 'Waiting for a TA' : 'A TA has claimed your request'}
-            </strong>{' '}
+            </strong>
             , {active.type}
           </p>
           <p>{active.description}</p>
@@ -119,7 +129,7 @@ export function QueueHelp({
               />
             </label>
             <button disabled={busy || !open || !selected}>
-              {busy ? 'Sending…' : 'Join TA queue'}
+              {busy ? 'Sending…' : error ? 'Retry request' : 'Join TA queue'}
             </button>
           </form>
         </>

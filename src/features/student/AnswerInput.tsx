@@ -12,13 +12,14 @@ export function AnswerInput({
   publicationId: string;
   block: Extract<PublicBlock, { type: 'answer' }>;
   saved?: Answer;
-  onSaved: () => Promise<void>;
+  onSaved: (value: string) => Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [value, setValue] = useState(saved?.value || '');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
   const [dirty, setDirty] = useState(false);
   const previousSavedValue = useRef(saved?.value);
   useEffect(() => {
@@ -29,6 +30,8 @@ export function AnswerInput({
     }
   }, [saved?.value, dirty]);
   async function submit() {
+    if (saving.current) return;
+    saving.current = true;
     setBusy(true);
     setError('');
     setStatus('Saving…');
@@ -38,14 +41,19 @@ export function AnswerInput({
         { value, units: block.units },
         'PUT',
       );
-      await onSaved();
       setDirty(false);
       onDirtyChange?.(false);
       setStatus('Answer saved.');
+      try {
+        await onSaved(value);
+      } catch {
+        setStatus('Answer saved. Progress could not refresh yet.');
+      }
     } catch (e) {
       setError((e as Error).message);
       setStatus('Your response is still here. Retry to save it.');
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
@@ -76,7 +84,7 @@ export function AnswerInput({
       </label>
       <div className="row">
         <button className="primary" disabled={busy}>
-          {busy ? 'Saving…' : 'Submit answer'}
+          {busy ? 'Saving…' : error ? 'Retry save' : 'Submit answer'}
         </button>
         <span className="muted">
           {saved
