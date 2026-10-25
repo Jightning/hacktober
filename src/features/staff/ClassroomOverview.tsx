@@ -22,7 +22,7 @@ export function ClassroomOverview({
             <div className="row between">
               <span>{c.title}</span>
               <span>
-                {c.verified}/{c.total} verified, {c.total - c.verified} remaining
+                {c.verified}/{c.total} verified, {c.total - c.verified} unverified
               </span>
             </div>
             <progress
@@ -38,7 +38,10 @@ export function ClassroomOverview({
         <ul className="student-list">
           {data.students.map((s) => (
             <li key={s.student.id}>
-              <button onClick={() => onSelect(s.student.id)}>{s.student.name}</button>
+              <button onClick={() => onSelect(s.student.id)}>
+                {s.student.name}
+                {s.student.demo ? ' · Demo' : ''}
+              </button>
               <div className="student-activity">
                 <span>
                   Viewing:{' '}

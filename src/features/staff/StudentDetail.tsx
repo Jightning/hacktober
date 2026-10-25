@@ -4,7 +4,10 @@ export function StudentDetail({ data, student }: { data: StaffState; student: St
   const checkpoint = currentCheckpoint(data.lab, student);
   return (
     <section className="panel stack">
-      <h2>{student.student.name}</h2>
+      <h2>
+        {student.student.name}
+        {student.student.demo ? ' · Demo student' : ''}
+      </h2>
       <p>
         Viewing:{' '}
         <strong>
@@ -45,6 +48,16 @@ export function StudentDetail({ data, student }: { data: StaffState; student: St
                   .join(', ')}
               </p>
             )}
+            {b.type === 'checkpoint' &&
+              b.answerIds.map((id) => {
+                const answer = student.answers.find((a) => a.blockId === id);
+                return (
+                  <div className="submission" key={id}>
+                    <strong>{data.lab.blocks.find((a) => a.id === id)?.title}</strong>
+                    <p>{answer ? `${answer.value} ${answer.units}` : 'Not submitted'}</p>
+                  </div>
+                );
+              })}
             {data.instructorContext[b.id] && (
               <div className="private-note">
                 <strong>Instructor-only criteria</strong>
