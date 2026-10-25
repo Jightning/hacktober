@@ -8,13 +8,16 @@ import { AnswerInput } from './AnswerInput';
 import { QueueHelp } from './QueueHelp';
 import { Workspace } from '../../components/ui/Workspace';
 import './student.css';
+import { useCurrentStep } from './useCurrentStep';
 export function Student({
   publicationId,
   renderAssistant,
   onDirtyChange,
   onOpenLabs,
+  active = true,
 }: {
   publicationId: string;
+  active?: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   onOpenLabs?: () => void;
   renderAssistant: (options: { enabled: boolean; studentId?: string }) => ReactNode;
@@ -43,14 +46,12 @@ export function Student({
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [checking, setChecking] = useState('');
-  async function visit(blockId: string) {
-    try {
-      await send(`/publications/${publicationId}/visit`, { blockId });
-      await refresh();
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
+  const { visit, focusBlock, blurBlock } = useCurrentStep({
+    publicationId,
+    labId: data?.lab.id,
+    enabled: active && page === 'notebook',
+    onError: setError,
+  });
   async function check(blockId: string) {
     setChecking(blockId);
     setError('');
@@ -86,7 +87,7 @@ export function Student({
               [
                 ['notebook', 'Notebook'],
                 ['progress', 'Progress'],
-                ['help', 'Ask a TA'],
+                ['help', 'Queue'],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -125,10 +126,7 @@ export function Student({
       <div className="page-heading">
         <div>
           <h1>{lab.title}</h1>
-          <p className="muted">
-            {progress.student.name}
-            {progress.student.demo ? ' · demo student' : ''}
-          </p>
+          <p className="muted">{progress.student.name}</p>
         </div>
         {dirty && (
           <span className="student-unsaved" role="status">
@@ -149,8 +147,11 @@ export function Student({
               id={`block-${b.id}`}
               className="panel stack student-cell"
               key={b.id}
-              onFocusCapture={() => {
-                if (progress.currentBlockId !== b.id) void visit(b.id);
+              onFocusCapture={() => focusBlock(b.id)}
+              onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  blurBlock();
+                }
               }}
             >
               <div className="row between">
@@ -158,11 +159,6 @@ export function Student({
                   <span className="student-cell-number">{index + 1}</span>
                   {b.title.replace(/^\d+\.\s*/, '')}
                 </h2>
-                {b.type !== 'answer' && (
-                  <button className="quiet" onClick={() => void visit(b.id)}>
-                    {progress.currentBlockId === b.id ? 'Current step' : 'Work here'}
-                  </button>
-                )}
               </div>
               {b.type === 'answer' ? (
                 <AnswerInput
@@ -192,7 +188,7 @@ export function Student({
                     </button>
                   ) : (
                     <p className="muted">
-                      Use “Ask a TA” and choose “Checkpoint checkoff” when ready.
+                      Use “Queue” and choose “Checkpoint checkoff” when ready.
                     </p>
                   )}
                   <Feedback status={feedback[b.id]} />
@@ -242,7 +238,7 @@ export function Student({
             );
           })}
       </section>
-      <section hidden={page !== 'help'} aria-label="Ask a TA">
+      <section hidden={page !== 'help'} aria-label="Queue">
         <QueueHelp
           lab={lab}
           requests={progress.requests}

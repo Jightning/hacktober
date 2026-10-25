@@ -1,16 +1,18 @@
+import { currentCheckpoint } from './progressSummary';
 import type { StaffState, StudentProgress } from '../../../shared/contracts';
 export function StudentDetail({ data, student }: { data: StaffState; student: StudentProgress }) {
+  const checkpoint = currentCheckpoint(data.lab, student);
   return (
     <section className="panel stack">
-      <h2>
-        {student.student.name}
-        {student.student.demo && <span className="tag">Seeded demo</span>}
-      </h2>
+      <h2>{student.student.name}</h2>
       <p>
-        Current step:{' '}
+        Viewing:{' '}
         <strong>
           {data.lab.blocks.find((b) => b.id === student.currentBlockId)?.title || 'Not yet viewed'}
         </strong>
+      </p>
+      <p>
+        Current checkpoint: <strong>{checkpoint?.title || 'All checkpoints verified'}</strong>
       </p>
       <h3>Submitted work</h3>
       {student.answers.length === 0 ? (

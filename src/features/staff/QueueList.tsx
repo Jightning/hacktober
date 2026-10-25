@@ -34,7 +34,6 @@ export function QueueList({
           <div className="row between">
             <button className="text-button" onClick={() => onSelect(r.studentId)}>
               {r.studentName}
-              {r.demo ? ' · demo' : ''}
             </button>
             <span className="tag">{r.type}</span>
           </div>

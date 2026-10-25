@@ -1,3 +1,4 @@
+import { Icon } from '../../components/ui/Icon';
 import type { EditorBlock } from './types';
 export function BlockEditor({
   block,
@@ -24,22 +25,30 @@ export function BlockEditor({
         <div className="row">
           <button
             type="button"
+            className="icon-button"
             aria-label={`Move ${block.title} up`}
             disabled={first}
             onClick={() => onMove(-1)}
           >
-            ↑
+            <Icon name="arrow_upward" />
           </button>
           <button
             type="button"
+            className="icon-button"
             aria-label={`Move ${block.title} down`}
             disabled={last}
             onClick={() => onMove(1)}
           >
-            ↓
+            <Icon name="arrow_downward" />
           </button>
-          <button type="button" onClick={onDelete}>
-            Delete block
+          <button
+            type="button"
+            className="icon-button"
+            aria-label={`Delete ${block.title}`}
+            title="Delete block"
+            onClick={onDelete}
+          >
+            <Icon name="delete" />
           </button>
         </div>
       </div>

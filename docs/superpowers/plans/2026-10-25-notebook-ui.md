@@ -22,3 +22,11 @@ Approved design: ../specs/2026-10-25-notebook-workspace-design.md. R4 feature an
 - Teacher: edited title, changed Settings/Preview/Publish pages without losing draft, published a new snapshot and received share link.
 - Desktop teacher/student layouts visually inspected. Mobile student viewport measured 375px client width and 375px scroll width; Menu exposed navigation. Teacher mobile and exhaustive keyboard/failure-path testing remain unverified.
 - Additive UI props: Authoring onDirtyChange; Student onDirtyChange and onOpenLabs. Existing callers remain valid. No R4 source, API, backend, or dependency changes.
+
+## Refinement pass
+
+User requested Material icons, separate collapsible navigation card, sticky side controls, natural typography, single student lab-selection surface, Queue naming, and removal of demo/role clutter. Uses self-hosted Roboto and official Google Material Symbols, with licenses in public/fonts. References: https://m3.material.io/styles/typography/applying-type and https://developers.google.com/fonts/docs/material_symbols.
+
+The user explicitly canceled optional step checkmarks. Instead, Student reports focused or visible steps through the existing /visit route. Staff classroom/review shows that context and the viewed checkpoint (or first unverified checkpoint when viewing ordinary content). No grading, schema, API, or R4 feature changes. Simulated assistant replies retain their existing truthful mode label; global mock/demo chrome is removed.
+
+Browser verification: desktop sidebars remain visible after scrolling; both toggle off/on; My labs has no duplicate selector; Material delete/reorder icons render with accessible names; separate staff session receives focused answer then viewport checkpoint updates. Narrow student layout and panel controls inspected. Automated gates: typecheck, 12 tests, build.

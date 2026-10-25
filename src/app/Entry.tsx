@@ -68,8 +68,8 @@ export function Entry({
       )}
       {identities.length > 0 && (
         <section className="panel stack">
-          <h2>Development identity picker</h2>
-          <p className="muted">Seeded demo accounts. This is not production sign-in.</p>
+          <h2>Choose an account</h2>
+          <p className="muted">Local preview accounts.</p>
           <div className="identity-list">
             {identities.map((u) => (
               <button
@@ -78,7 +78,7 @@ export function Entry({
                 onClick={() => void enter('/session/demo', { id: u.id })}
               >
                 <strong>{u.name}</strong>
-                <span>{u.role} · demo</span>
+                <span>{u.role}</span>
               </button>
             ))}
           </div>
@@ -87,7 +87,7 @@ export function Entry({
       {!publicationId && (
         <p>
           Students can join using a link shared by their teacher.{' '}
-          <a href="/lab/demo-publication">Open the seeded lab</a>.
+          <a href="/lab/demo-publication">Open the example lab</a>.
         </p>
       )}
     </main>

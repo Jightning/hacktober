@@ -8,6 +8,7 @@ import { Student } from '../features/student/Student';
 import { Assistant } from '../features/assistant/Assistant';
 import { Staff } from '../features/staff/Staff';
 import { Workspace } from '../components/ui/Workspace';
+import { Icon } from '../components/ui/Icon';
 import { Feedback } from '../components/ui/Feedback';
 export function App() {
   const invitation = window.location.pathname.match(/^\/lab\/([^/]+)\/?$/)?.[1] || null;
@@ -17,7 +18,6 @@ export function App() {
   const [area, setArea] = useState<'authoring' | 'staff'>('authoring');
   const [publications, setPublications] = useState<PublicationLink[]>([]);
   const [selected, setSelected] = useState(invitation || '');
-  const [mock, setMock] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const reportDirty = useCallback((value: boolean) => setDirty(value), []);
@@ -34,9 +34,6 @@ export function App() {
       .then(setUser)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-    api<{ mockAI: boolean }>('/health')
-      .then((r) => setMock(r.mockAI))
-      .catch(() => {});
   }, []);
   useEffect(() => {
     if (user) {
@@ -56,16 +53,12 @@ export function App() {
             if (!canLeave()) e.preventDefault();
           }}
         >
-          LabMate
+          <Icon name="science" /> LabMate
         </a>
         <span className="muted">Lab workspace</span>
-        {mock && <span className="tag">AI mock mode</span>}
         {user && (
           <div className="session">
-            <span>
-              {user.name} · {user.role}
-              {user.demo ? ' · demo' : ''}
-            </span>
+            <span>{user.name}</span>
             <button
               onClick={async () => {
                 if (!canLeave()) return;
@@ -142,25 +135,27 @@ export function App() {
                 />
               ) : (
                 <>
-                  <label className="publication-select">
-                    Lab
-                    <select
-                      value={selected}
-                      onChange={(e) => {
-                        if (canLeave()) {
-                          setDirty(false);
-                          setSelected(e.target.value);
-                          setLibraryOpen(false);
-                        }
-                      }}
-                    >
-                      {publications.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.title} · {new Date(p.publishedAt).toLocaleString()}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  {user.role !== 'student' && (
+                    <label className="publication-select">
+                      Lab
+                      <select
+                        value={selected}
+                        onChange={(e) => {
+                          if (canLeave()) {
+                            setDirty(false);
+                            setSelected(e.target.value);
+                            setLibraryOpen(false);
+                          }
+                        }}
+                      >
+                        {publications.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.title} · {new Date(p.publishedAt).toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   {selected ? (
                     user.role === 'student' ? (
                       <>
@@ -201,6 +196,7 @@ export function App() {
                         )}
                         <div hidden={libraryOpen}>
                           <Student
+                            active={!libraryOpen}
                             onOpenLabs={() => setLibraryOpen(true)}
                             onDirtyChange={reportDirty}
                             key={selected}

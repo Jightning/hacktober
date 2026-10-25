@@ -1,3 +1,4 @@
+import { Icon } from '../../components/ui/Icon';
 import type { EditorBlock, EditorDraft } from './types';
 import { PublicBlockView } from '../../components/lab-blocks/PublicBlockView';
 import { BlockEditor } from './BlockEditor';
@@ -38,7 +39,7 @@ export function NotebookEditor({
               {index + 1} · {block.type}
             </span>{' '}
             <strong>{block.title || 'Untitled cell'}</strong>
-            <span>{activeCell === block.id ? 'Collapse' : 'Edit'}</span>
+            <Icon name={activeCell === block.id ? 'close' : 'edit'} />
           </button>
           {activeCell !== block.id && (
             <div className="cell-summary">

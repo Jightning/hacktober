@@ -52,7 +52,7 @@ export function QueueHelp({
   }
   return (
     <section className="panel stack">
-      <h2>Ask a TA</h2>
+      <h2>Queue</h2>
       <Feedback error={error} />
       {active ? (
         <>

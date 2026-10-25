@@ -1,3 +1,4 @@
+import { currentCheckpoint } from './progressSummary';
 import type { StaffState } from '../../../shared/contracts';
 export function ClassroomOverview({
   data,
@@ -14,10 +15,6 @@ export function ClassroomOverview({
           {data.stats.completed} of {data.stats.total}
         </strong>{' '}
         students have verified all required checkpoints.
-      </p>
-      <p className="muted">
-        Includes labeled seeded demo activity. Current step is a navigation observation, not
-        evidence that a student is stuck.
       </p>
       <div className="stack">
         {data.stats.checkpoints.map((c) => (
@@ -36,20 +33,24 @@ export function ClassroomOverview({
           </div>
         ))}
       </div>
-      <details>
-        <summary>All students ({data.students.length})</summary>
+      <section>
+        <h3>Students ({data.students.length})</h3>
         <ul className="student-list">
           {data.students.map((s) => (
             <li key={s.student.id}>
-              <button onClick={() => onSelect(s.student.id)}>
-                {s.student.name}
-                {s.student.demo ? ' · demo' : ''}
-              </button>
-              <span>{s.completions.length} checkpoints verified</span>
+              <button onClick={() => onSelect(s.student.id)}>{s.student.name}</button>
+              <div className="student-activity">
+                <span>
+                  Viewing:{' '}
+                  {data.lab.blocks.find((block) => block.id === s.currentBlockId)?.title ||
+                    'Not yet viewed'}
+                </span>
+                <span>Checkpoint: {currentCheckpoint(data.lab, s)?.title || 'All verified'}</span>
+              </div>
             </li>
           ))}
         </ul>
-      </details>
+      </section>
     </section>
   );
 }
