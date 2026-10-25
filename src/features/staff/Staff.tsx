@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { StaffState } from '../../../shared/contracts';
 import { usePolling } from '../../lib/usePolling';
-import { send } from '../../lib/api';
+import { ApiError, send } from '../../lib/api';
 import { useIdentity } from '../../app/Session';
 import { Feedback } from '../../components/ui/Feedback';
 import { Workspace } from '../../components/ui/Workspace';
@@ -33,6 +33,7 @@ export function Staff({
   async function act(id: string, action: string) {
     setBusy(true);
     setError('');
+    setStatus('');
     try {
       await send(`/publications/${publicationId}/queue/${id}/${action}`);
       await refresh();
@@ -42,7 +43,11 @@ export function Staff({
           : `Request ${action === 'claim' ? 'claimed' : action === 'release' ? 'released' : 'resolved'}.`,
       );
     } catch (e) {
-      setError((e as Error).message);
+      setError(
+        action === 'claim' && e instanceof ApiError && e.status === 409
+          ? 'Another TA claimed this request, or it is no longer waiting. The queue has been refreshed; you can still review the selected student.'
+          : (e as Error).message,
+      );
       await refresh();
     } finally {
       setBusy(false);
@@ -87,6 +92,9 @@ export function Staff({
         </div>
       </div>
       <Feedback error={loadError || error} status={status} />
+      {page === 'Queue' && student && (
+        <button onClick={() => setPage('Review')}>Review {student.student.name}</button>
+      )}
       {page === 'Queue' && (
         <QueueList
           requests={data.requests}

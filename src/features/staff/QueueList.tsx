@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import './staff.css';
 import type { PublicLab, QueueRequest } from '../../../shared/contracts';
 export function QueueList({
   requests,
@@ -16,17 +18,29 @@ export function QueueList({
   actorId: string;
   busy: boolean;
 }) {
+  const [filter, setFilter] = useState<'all' | QueueRequest['type']>('all');
+  const visible = requests.filter((r) => filter === 'all' || r.type === filter);
   return (
     <section className="panel stack">
       <h2>
         TA queue <span className="tag">{requests.length} active</span>
       </h2>
+      <div className="row staff-filters" role="group" aria-label="Filter requests">
+        {(['all', 'help', 'checkoff'] as const).map((type) => (
+          <button key={type} aria-pressed={filter === type} onClick={() => setFilter(type)}>
+            {type === 'all' ? 'All' : type === 'help' ? 'Help' : 'Checkoff'}
+          </button>
+        ))}
+      </div>
+      {requests.length > 0 && visible.length === 0 && (
+        <p role="status">No {filter} requests. Choose All to see other active requests.</p>
+      )}
       {requests.length === 0 && (
         <p className="muted">
           No active requests. Select a student from classroom progress to review their work.
         </p>
       )}
-      {requests.map((r) => (
+      {visible.map((r) => (
         <article
           className={`queue-item ${selectedStudent === r.studentId ? 'selected' : ''}`}
           key={r.id}
@@ -35,7 +49,10 @@ export function QueueList({
             <button className="text-button" onClick={() => onSelect(r.studentId)}>
               {r.studentName}
             </button>
-            <span className="tag">{r.type}</span>
+            <span className="tag">
+              {r.type}
+              {r.demo ? ' · Demo' : ''}
+            </span>
           </div>
           <p>{lab.blocks.find((b) => b.id === r.blockId)?.title}</p>
           <p>{r.description}</p>
