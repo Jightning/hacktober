@@ -243,3 +243,31 @@ test('empty and access-denied provider responses fail safely without fallback or
   assert.equal(calls.length, 2);
   assert.equal(calls[0].generationConfig.maxOutputTokens, 1600);
 });
+
+test('quota exhaustion saves no partial turn and permits a successful retry', async (t) => {
+  const f = fixture(t);
+  let exhausted = true;
+  const calls = provider(t, async () =>
+    exhausted
+      ? new Response(
+          JSON.stringify({
+            error: { code: 429, status: 'RESOURCE_EXHAUSTED', message: 'private quota detail' },
+          }),
+          { status: 429 },
+        )
+      : new Response(
+          JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Recovered hint' }] } }] }),
+        ),
+  );
+  const student = await f.agent('student-1');
+  const failed = await student.post(base).send({ message: 'Keep my question' }).expect(502);
+  assert.doesNotMatch(JSON.stringify(failed.body), /private quota detail|test-key/);
+  assert.equal((await student.get(base).expect(200)).body.length, 0);
+  exhausted = false;
+  await student.post(base).send({ message: 'Keep my question' }).expect(200);
+  const history = (await student.get(base).expect(200)).body;
+  assert.equal(history.length, 2);
+  assert.equal(history[0].text, 'Keep my question');
+  assert.equal(history[1].text, 'Recovered hint');
+  assert.equal(calls.length, 2);
+});
