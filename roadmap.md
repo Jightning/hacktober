@@ -166,28 +166,30 @@ At minute 120, stop adding optional UI improvements. Preserve data safety, autho
 
 **Owner: Person 1. Output: a clear, valid publish flow and stable shared app composition.**
 
+R1 implementation: `683b543`. All 28 tests, typecheck and build pass. See [R1 handoff](docs/routes/authoring.md) for browser evidence and remaining acceptance checks; native-dialog automation did not verify the complete cancel/discard matrix. G2/G3 remain open.
+
 ### R1.1 — Establish the shared handoff
 
 - [ ] Run the baseline checks, confirm the four branches and ownership table, and create `docs/routes/authoring.md`.
-- [ ] Implement G1 in app-owned files; publish the exact callback semantics and commit ID. Test shell guard behavior with a simulated dirty callback before R2's implementation arrives.
-- [ ] Preserve existing feature entry-point props, exports, and default behavior. Keep the renderer injection in the shell.
+- [x] Implement G1 in app-owned files; publish the exact callback semantics and commit ID. Test shell guard behavior with a simulated dirty callback before R2's implementation arrives.
+- [x] Preserve existing feature entry-point props, exports, and default behavior. Keep the renderer injection in the shell.
 
 **Done when:** the shared commit builds without new route code, clean navigation still works, and R2 has an explicit consumer to target. No other route needs to wait for authoring enhancements.
 
 ### R1.2 — Make invalid drafts understandable
 
-- [ ] In `tests/authoring.test.ts`, cover missing checkpoint answer references, mismatched numeric units, invalid session order, and publishing without a required checkpoint. Assert rejected publish creates no publication.
-- [ ] Improve `src/features/authoring/BlockEditor.tsx`, `SettingsEditor.tsx`, and `Authoring.tsx` to identify the offending field/block before save or publish. Focus the first error and keep entered values intact.
-- [ ] Keep authoritative Zod validation in `server/modules/labs/model.ts`. For this sprint, retain the existing API error shape and valid-draft requirement; use authoring-local validation for field presentation. Do not introduce partial-draft persistence or a cross-route error contract.
+- [x] In `tests/authoring.test.ts`, cover missing checkpoint answer references, mismatched numeric units, invalid session order, and publishing without a required checkpoint. Assert rejected publish creates no publication.
+- [x] Improve `src/features/authoring/BlockEditor.tsx`, `SettingsEditor.tsx`, and `Authoring.tsx` to identify the offending field/block before save or publish. Focus the first error and keep entered values intact.
+- [x] Keep authoritative Zod validation in `server/modules/labs/model.ts`. For this sprint, retain the existing API error shape and valid-draft requirement; use authoring-local validation for field presentation. Do not introduce partial-draft persistence or a cross-route error contract.
 - [ ] Verify add, edit, move, delete, and preview for markdown, code, image, answer, and checkpoint blocks. Image alt text remains mandatory; Python code cells are executable in the browser, Markdown code fences are display-only, and preview exposes only public content.
 
 **Done when:** a user can locate and correct each invalid field, save successfully, and no private data is added to public DTOs.
 
 ### R1.3 — Make publishing deliberate and stable
 
-- [ ] Add a local pre-publish summary: lab title, ordered block count, required checkpoints, AI settings, session window, and the fact that this creates a new snapshot/link.
-- [ ] Add tests: publish A → edit draft → publish B; A's content/settings and enrolled student's work remain unchanged, while B contains the edits.
-- [ ] Verify both seeded TAs receive the new session assignment and the teacher can open the TA dashboard. Retain the documented demo assignment policy; defer an assignment-management UI.
+- [x] Add a local pre-publish summary: lab title, ordered block count, required checkpoints, AI settings, session window, and the fact that this creates a new snapshot/link.
+- [x] Add tests: publish A → edit draft → publish B; A's content/settings and enrolled student's work remain unchanged, while B contains the edits.
+- [x] Verify both seeded TAs receive the new session assignment and the teacher can open the TA dashboard. Retain the documented demo assignment policy; defer an assignment-management UI.
 - [ ] Verify save failure retains edits and link copying has a usable manual-copy fallback.
 
 **Done when:** the teacher can create and publish a valid lab without changing an active session or losing edits.
@@ -195,7 +197,7 @@ At minute 120, stop adding optional UI improvements. Preserve data safety, autho
 ### R1.4 — Handoff and final coordination
 
 - [ ] Run route and full checks; record browser evidence, commit IDs, and remaining limitations in the route notes.
-- [ ] Take responsibility for G2/G3 below. Do not quietly patch another owner's feature files during integration.
+- [x] Take responsibility for G2/G3 below. Do not quietly patch another owner's feature files during integration.
 
 ## 5. Route 2 — Student workflow
 
