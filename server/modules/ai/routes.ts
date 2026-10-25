@@ -5,9 +5,10 @@ import type { ChatMessage } from '../../../shared/contracts.js';
 import { transaction } from '../../db/database.js';
 import { user, staffAccess, studentAccess } from '../sessions/auth.js';
 import { getPublication } from '../labs/repository.js';
-import { requireValue } from '../../http.js';
+import { HttpError, requireValue } from '../../http.js';
 import { studentContext, staffContext } from './context.js';
-import { generateReply } from './provider.js';
+import { generateReply, type ProviderInput } from './provider.js';
+import { checkAssistantInput, checkAssistantReply } from './guardrails.js';
 export function aiRoutes(db: DB, mockAI: boolean) {
   const r = Router({ mergeParams: true });
   const pending = new Set<string>();
@@ -35,6 +36,7 @@ export function aiRoutes(db: DB, mockAI: boolean) {
     return { publicationId, actorId: u.id, studentId, audience };
   }
   function history(s: ReturnType<typeof scope>): ChatMessage[] {
+    const blocks = getPublication(db, s.publicationId).draft.blocks;
     return (
       db
         .prepare(
@@ -43,12 +45,25 @@ export function aiRoutes(db: DB, mockAI: boolean) {
         .all(s.publicationId, s.actorId, s.studentId, s.audience) as any[]
     )
       .reverse()
-      .map((m) => ({ role: m.role, text: m.text, mock: Boolean(m.mock) }));
+      .map((m) => {
+        const message: ChatMessage = { role: m.role, text: m.text, mock: Boolean(m.mock) };
+        if (message.role === 'assistant') {
+          try {
+            checkAssistantReply({ ...message, model: 'stored-history' }, s.audience, blocks);
+          } catch (error) {
+            if (!(error instanceof HttpError) || error.status !== 502) throw error;
+            message.text =
+              '[Earlier assistant reply withheld by safety checks. Ask a TA for help.]';
+          }
+        }
+        return message;
+      });
   }
   r.get('/assistant', (req, res) => res.json(history(scope(req))));
   r.post('/assistant', async (req, res) => {
     const s = scope(req);
-    const settings = getPublication(db, s.publicationId).draft.settings;
+    const draft = getPublication(db, s.publicationId).draft;
+    const settings = draft.settings;
     requireValue(
       s.audience === 'student' ? settings.studentAI : settings.taAI,
       403,
@@ -63,16 +78,16 @@ export function aiRoutes(db: DB, mockAI: boolean) {
         s.audience === 'student'
           ? studentContext(db, s.publicationId, s.studentId)
           : staffContext(db, s.publicationId, s.studentId);
-      const reply = await generateReply(
-        {
-          audience: s.audience,
-          hintPolicy: settings.hintPolicy,
-          context,
-          history: history(s),
-          message,
-        },
-        mockAI,
-      );
+      const input: ProviderInput = {
+        audience: s.audience,
+        hintPolicy: settings.hintPolicy,
+        context,
+        history: history(s),
+        message,
+      };
+      checkAssistantInput(input);
+      const reply = await generateReply(input, mockAI);
+      checkAssistantReply(reply, s.audience, draft.blocks);
       transaction(db, () => {
         const insert = db.prepare(
           'INSERT INTO messages (publication_id,actor_id,student_id,audience,role,text,mock) VALUES (?, ?, ?, ?, ?, ?, ?)',
