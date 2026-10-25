@@ -6,6 +6,7 @@ import { PublicBlockView } from '../../components/lab-blocks/PublicBlockView';
 import { NotebookEditor } from './NotebookEditor';
 import { Workspace } from '../../components/ui/Workspace';
 import { SettingsEditor } from './SettingsEditor';
+import { validateDraft, type DraftIssue } from './validation';
 export function Authoring({
   publicationChanged,
   onDirtyChange,
@@ -27,6 +28,23 @@ export function Authoring({
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [issues, setIssues] = useState<DraftIssue[]>([]);
+  const [focusIssue, setFocusIssue] = useState<DraftIssue | null>(null);
+  useEffect(() => {
+    if (!focusIssue) return;
+    const container = focusIssue.blockId
+      ? document.getElementById(`editor-${focusIssue.blockId}`)
+      : document;
+    const field = container?.querySelector<HTMLElement>(`[data-field="${focusIssue.field}"]`);
+    field?.closest('details')?.setAttribute('open', '');
+    field?.focus();
+    setFocusIssue(null);
+  }, [focusIssue]);
+  function locate(issue: DraftIssue) {
+    setPage(issue.page);
+    setActiveCell(issue.blockId || '');
+    setFocusIssue(issue);
+  }
   useEffect(() => {
     api<{ id: string; title: string }[]>('/labs')
       .then((list) => {
@@ -73,11 +91,19 @@ export function Authoring({
     };
   }, [id, loadVersion]);
   function edit(next: EditorDraft) {
+    setIssues([]);
     setDraft(next);
     setDirty(true);
     setStatus('');
   }
   async function save(publish = false) {
+    if (!draft) return;
+    const invalid = validateDraft(draft, publish);
+    setIssues(invalid);
+    if (invalid.length) {
+      locate(invalid[0]);
+      return;
+    }
     setBusy(true);
     setError('');
     setStatus('');
@@ -197,6 +223,20 @@ export function Authoring({
           )}
         </div>
         <Feedback error={error} status={status} />
+        {issues.length > 0 && (
+          <div role="alert" className="notice">
+            <p>Correct these fields, then save again:</p>
+            <ul>
+              {issues.map((issue, index) => (
+                <li key={index}>
+                  <button type="button" onClick={() => locate(issue)}>
+                    {issue.message}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {page === 'Labs' ? (
           <div className="stack">
             {labs.map((lab) => (
@@ -222,6 +262,7 @@ export function Authoring({
           </div>
         ) : (
           <form
+            noValidate
             onSubmit={(event) => {
               event.preventDefault();
               void save(page === 'Publish');
@@ -259,6 +300,32 @@ export function Authoring({
               {page === 'Publish' && (
                 <section className="panel stack">
                   <h2>Publish lab</h2>
+                  <dl>
+                    <dt>Lab title</dt>
+                    <dd>{draft.title}</dd>
+                    <dt>Ordered blocks</dt>
+                    <dd>{draft.blocks.length}</dd>
+                    <dt>Required checkpoints</dt>
+                    <dd>
+                      {draft.blocks
+                        .filter((b) => b.type === 'checkpoint' && b.required)
+                        .map((b) => b.title)
+                        .join(', ') || 'None — add a required checkpoint'}
+                    </dd>
+                    <dt>Student AI</dt>
+                    <dd>
+                      {draft.settings.studentAI
+                        ? draft.settings.hintPolicy + ' hints enabled'
+                        : 'Disabled'}
+                    </dd>
+                    <dt>TA AI</dt>
+                    <dd>{draft.settings.taAI ? 'Enabled' : 'Disabled'}</dd>
+                    <dt>Session window (local time)</dt>
+                    <dd>
+                      {new Date(draft.settings.opensAt).toLocaleString()} –{' '}
+                      {new Date(draft.settings.closesAt).toLocaleString()}
+                    </dd>
+                  </dl>
                   <p>
                     Save this draft and publish a new snapshot. Existing student links keep their
                     content.
@@ -270,17 +337,29 @@ export function Authoring({
                     <div className="stack">
                       <label>
                         Published student link
-                        <input readOnly value={link} />
+                        <input
+                          id="published-link"
+                          readOnly
+                          value={link}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </label>
                       <div className="row">
                         <button
                           type="button"
-                          onClick={() =>
-                            navigator.clipboard
-                              .writeText(link)
-                              .then(() => setStatus('Link copied.'))
-                              .catch(() => setStatus('Select and copy the link above.'))
-                          }
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(link);
+                              setStatus('Link copied.');
+                            } catch {
+                              const input = document.getElementById(
+                                'published-link',
+                              ) as HTMLInputElement | null;
+                              input?.focus();
+                              input?.select();
+                              setStatus('Copy the selected link with Ctrl+C (Command+C on Mac).');
+                            }
+                          }}
                         >
                           Copy link
                         </button>
