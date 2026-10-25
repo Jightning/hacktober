@@ -248,42 +248,44 @@ R1 implementation: `683b543`. All 28 tests, typecheck and build pass. See [R1 ha
 
 **Owner: Person 3. Output: a usable queue with trustworthy student context and human-controlled checkoffs. No dependency on unfinished student features.**
 
+**Verified 2026-10-25:** typecheck, 27/27 tests, production build, and independent Alex/Sam browser rehearsal passed. Evidence and the route handoff are in [TA route notes](docs/routes/ta.md). AI was explicitly mocked; G2/G3 remain separate.
+
 ### R3.1 — Lock down queue behavior
 
-- [ ] Create `tests/queue.test.ts`; use the existing database/seed/app factory and separate TA agents.
-- [ ] Test simultaneous claims: exactly one success, one conflict, and one stored claimant. Test duplicate active student requests, closed session, student ownership, and unassigned staff rejection.
-- [ ] Test release → reclaim, waiting cancellation, and claimant-only approval/resolution. Help requests must not approve a checkpoint; approving a checkoff must not implicitly resolve its request.
+- [x] Create `tests/queue.test.ts`; use the existing database/seed/app factory and separate TA agents.
+- [x] Test simultaneous claims: exactly one success, one conflict, and one stored claimant. Test duplicate active student requests, closed session, student ownership, and unassigned staff rejection.
+- [x] Test release → reclaim, waiting cancellation, and claimant-only approval/resolution. Help requests must not approve a checkpoint; approving a checkoff must not implicitly resolve its request.
 
 **Done when:** server transitions remain authoritative regardless of button state or concurrent browsers.
 
 ### R3.2 — Make the queue easier to scan
 
-- [ ] Add All / Help / Checkoff filtering inside `QueueList.tsx` or a new route-local component; preserve the server's arrival order within each filtered set.
-- [ ] Keep the selected student stable through polling. Empty filtered results must not silently switch to another student or hide the active selection's details.
-- [ ] Display waiting/claimed state, elapsed arrival time, and whether the request belongs to the current TA. Disable unavailable actions while preserving server checks.
+- [x] Add All / Help / Checkoff filtering inside `QueueList.tsx` or a new route-local component; preserve the server's arrival order within each filtered set.
+- [x] Keep the selected student stable through polling. Empty filtered results must not silently switch to another student or hide the active selection's details.
+- [x] Display waiting/claimed state, elapsed arrival time, and whether the request belongs to the current TA. Disable unavailable actions while preserving server checks.
 
 **Done when:** filters work without changing `StaffState`, endpoints, queue ordering, or student UI.
 
 ### R3.3 — Make actions and context trustworthy
 
-- [ ] On a claim conflict, refresh the queue, explain that another TA claimed it, and retain the selected student's detail where possible.
-- [ ] Keep referenced answers, current step, checkpoint completion, and instructor-only criteria visible together in `StudentDetail.tsx`.
-- [ ] After approval and resolution, verify queue state and classroom counts update from stored data. Editing a previously approved answer must eventually show revoked completion through polling.
-- [ ] Keep chart labels factual: unverified count and current step are observations, not proof of difficulty. Preserve demo labels.
+- [x] On a claim conflict, refresh the queue, explain that another TA claimed it, and retain the selected student's detail where possible.
+- [x] Keep referenced answers, current step, checkpoint completion, and instructor-only criteria visible together in `StudentDetail.tsx`.
+- [x] After approval and resolution, verify queue state and classroom counts update from stored data. Editing a previously approved answer must eventually show revoked completion through polling.
+- [x] Keep chart labels factual: unverified count and current step are observations, not proof of difficulty. Preserve demo labels.
 
 **Done when:** a TA can recover from conflicts, explain what they are approving, and see consistent progress after every action.
 
 ### R3.4 — Verify the human workflow
 
-- [ ] Use two independently authenticated TA browser sessions to compete for one request.
-- [ ] Claim a help request, release it, reclaim it from the other TA, and resolve it.
-- [ ] Claim a checkoff, inspect the work/rubric, approve, then resolve. Verify keyboard use and useful empty/error states.
-- [ ] Use existing seeded students or route-local test fixtures; do not edit shared seed files or depend on R2 producing new data.
+- [x] Use two independently authenticated TA browser sessions to compete for one request.
+- [x] Claim a help request, release it, reclaim it from the other TA, and resolve it.
+- [x] Claim a checkoff, inspect the work/rubric, approve, then resolve. Verify keyboard use and useful empty/error states.
+- [x] Use existing seeded students or route-local test fixtures; do not edit shared seed files or depend on R2 producing new data.
 
 ### R3.5 — Handoff
 
-- [ ] Run route/full checks; record conflict, release, approval, resolution, filtering, and overview results in `docs/routes/ta.md`.
-- [ ] Give Person 1 ordered commits. Send any progress-helper issue to R2 with a failing scenario; do not modify `progress/repository.ts` yourself.
+- [x] Run route/full checks; record conflict, release, approval, resolution, filtering, and overview results in `docs/routes/ta.md`.
+- [x] Provide Person 1 the route handoff in `docs/routes/ta.md`. The user authorized committing the route on `labmate/ta` and merging it into local main after R1; the handoff lists the changed files and integration evidence. No progress-helper defect was found, and `progress/repository.ts` was not modified.
 
 ## 7. Route 4 — AI integration and evidence
 
