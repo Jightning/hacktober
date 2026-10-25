@@ -3,17 +3,25 @@ import type { EditorBlock, EditorDraft } from './types';
 import { api, send } from '../../lib/api';
 import { Feedback } from '../../components/ui/Feedback';
 import { PublicBlockView } from '../../components/lab-blocks/PublicBlockView';
-import { BlockEditor } from './BlockEditor';
+import { NotebookEditor } from './NotebookEditor';
+import { Workspace } from '../../components/ui/Workspace';
 import { SettingsEditor } from './SettingsEditor';
 export function Authoring({
   publicationChanged,
+  onDirtyChange,
 }: {
   publicationChanged: (id: string) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [labs, setLabs] = useState<{ id: string; title: string }[]>([]);
   const [id, setId] = useState('');
   const [draft, setDraft] = useState<EditorDraft | null>(null);
-  const [preview, setPreview] = useState(false);
+  const [page, setPage] = useState<'Labs' | 'Notebook' | 'Preview' | 'Settings' | 'Publish'>(
+    'Labs',
+  );
+  const [activeCell, setActiveCell] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadVersion, setLoadVersion] = useState(0);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -25,18 +33,45 @@ export function Authoring({
         setLabs(list);
         setId(list[0]?.id || '');
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
   }, []);
   useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+  useEffect(() => {
+    if (page === 'Notebook' && activeCell) {
+      document.getElementById(`cell-${activeCell}`)?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [page, activeCell]);
+  useEffect(() => {
+    let cancelled = false;
     if (id) {
       setDraft(null);
       setDirty(false);
       setLink('');
+      setError('');
+      setStatus('');
+      setActiveCell('');
       api<EditorDraft>(`/labs/${id}`)
-        .then(setDraft)
-        .catch((e) => setError(e.message));
+        .then((value) => {
+          if (!cancelled) setDraft(value);
+        })
+        .catch((e) => {
+          if (!cancelled) setError(e.message);
+        });
     }
-  }, [id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, loadVersion]);
   function edit(next: EditorDraft) {
     setDraft(next);
     setDirty(true);
@@ -64,11 +99,14 @@ export function Authoring({
     }
   }
   async function create() {
+    if (dirty && !window.confirm('Discard unsaved changes and create a new lab?')) return;
+    setError('');
     setBusy(true);
     try {
       const result = await send<{ id: string }>('/labs', { title: 'Untitled lab' });
       setLabs((old) => [...old, { id: result.id, title: 'Untitled lab' }]);
       setId(result.id);
+      setPage('Notebook');
       setStatus('New draft created.');
     } catch (e) {
       setError((e as Error).message);
@@ -97,147 +135,182 @@ export function Authoring({
                   rubric: '',
                 };
     edit({ ...draft, blocks: [...draft.blocks, block] });
+    setActiveCell(block.id);
+  }
+  function openLab(nextId: string) {
+    if (nextId !== id && dirty && !window.confirm('Discard unsaved changes and open another lab?'))
+      return;
+    setId(nextId);
+    setPage('Notebook');
   }
   return (
-    <section className="editor">
-      <div className="page-heading">
-        <div>
-          <h1>Lab editor</h1>
-          <p className="muted">Build a draft, then publish a stable student link.</p>
+    <Workspace
+      navigation={
+        <>
+          <nav className="workspace-nav" aria-label="Teacher pages">
+            {(['Labs', 'Notebook', 'Preview', 'Settings', 'Publish'] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-current={page === item ? 'page' : undefined}
+                disabled={busy || (item !== 'Labs' && !draft)}
+                onClick={() => setPage(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </nav>
+          {draft && page !== 'Labs' && (
+            <nav className="workspace-outline" aria-label="Notebook outline">
+              <h2>Outline</h2>
+              {draft.blocks.length === 0 && <p className="muted">No cells yet.</p>}
+              {draft.blocks.map((block, index) => (
+                <button
+                  type="button"
+                  key={block.id}
+                  aria-current={
+                    activeCell === block.id && page === 'Notebook' ? 'location' : undefined
+                  }
+                  onClick={() => {
+                    setPage('Notebook');
+                    setActiveCell(block.id);
+                  }}
+                >
+                  {index + 1}. {block.title.replace(/^\d+\.\s*/, '') || block.type}
+                </button>
+              ))}
+            </nav>
+          )}
+        </>
+      }
+    >
+      <section className="editor stack">
+        <div className="page-heading">
+          <div>
+            <p className="eyebrow">Teacher workspace</p>
+            <h1>{page === 'Labs' ? 'Labs' : draft?.title || 'Notebook'}</h1>
+          </div>
+          {page === 'Labs' ? (
+            <button className="primary" onClick={() => void create()} disabled={busy}>
+              New lab
+            </button>
+          ) : (
+            <span className="muted">{dirty ? 'Unsaved changes' : 'Draft saved'}</span>
+          )}
         </div>
-        <button onClick={() => void create()} disabled={busy || dirty}>
-          New lab
-        </button>
-      </div>
-      <label>
-        Draft
-        <select value={id} disabled={dirty} onChange={(e) => setId(e.target.value)}>
-          {labs.map((l) => (
-            <option value={l.id} key={l.id}>
-              {l.title}
-            </option>
-          ))}
-        </select>
-      </label>
-      <Feedback error={error} status={status} />
-      {draft && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save();
-          }}
-        >
-          <fieldset className="form-body" disabled={busy}>
-            <div className="toolbar">
-              <button className="primary" disabled={busy}>
-                {busy ? 'Saving…' : 'Save draft'}
-              </button>
-              <button type="button" disabled={busy} onClick={() => void save(true)}>
-                Save & publish
-              </button>
-              <button type="button" onClick={() => setPreview(!preview)}>
-                {preview ? 'Back to editor' : 'Preview student view'}
-              </button>
-              {dirty && <span className="muted">Unsaved</span>}
-            </div>
-            {link && (
-              <div className="panel stack">
-                <label>
-                  Published student link
-                  <input readOnly value={link} />
-                </label>
-                <div className="row">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigator.clipboard
-                        .writeText(link)
-                        .then(() => setStatus('Link copied.'))
-                        .catch(() => setStatus('Select and copy the link above.'))
-                    }
-                  >
-                    Copy link
-                  </button>
-                  <a href={link} target="_blank" rel="noreferrer">
-                    Open student link
-                  </a>
+        <Feedback error={error} status={status} />
+        {page === 'Labs' ? (
+          <div className="stack">
+            {labs.map((lab) => (
+              <div className="panel row between" key={lab.id}>
+                <div>
+                  <h2>{lab.id === id && draft ? draft.title : lab.title}</h2>
+                  <span className="muted">
+                    Draft{lab.id === id && dirty ? ' · Unsaved changes' : ''}
+                  </span>
                 </div>
+                <button onClick={() => openLab(lab.id)} disabled={busy}>
+                  Open notebook
+                </button>
               </div>
+            ))}
+            {labs.length === 0 && <p>{loading ? 'Loading labs…' : 'Create a lab to begin.'}</p>}
+          </div>
+        ) : !draft ? (
+          <div className="stack">
+            <p>{error ? 'Could not load this draft.' : 'Loading draft…'}</p>
+            {error && (
+              <button type="button" onClick={() => setLoadVersion((value) => value + 1)}>
+                Retry
+              </button>
             )}
-            {preview ? (
-              <div className="stack">
-                <p className="notice">Student preview · responses and checks are inactive.</p>
-                <h2>{draft.title}</h2>
-                {draft.blocks.map((b) => (
-                  <section className="panel" key={b.id}>
-                    <h3>{b.title}</h3>
-                    <PublicBlockView block={b} />
-                  </section>
-                ))}
-              </div>
-            ) : (
-              <div className="stack">
-                <label>
-                  Lab title
-                  <input
-                    required
-                    value={draft.title}
-                    onChange={(e) => edit({ ...draft, title: e.target.value })}
-                  />
-                </label>
+          </div>
+        ) : (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void save(page === 'Publish');
+            }}
+          >
+            <fieldset className="form-body stack" disabled={busy}>
+              {(page === 'Notebook' || page === 'Settings') && (
+                <div className="toolbar">
+                  <h2>{page}</h2>
+                  <button className="primary" type="submit">
+                    {busy ? 'Saving…' : 'Save draft'}
+                  </button>
+                </div>
+              )}
+              {page === 'Notebook' && (
+                <NotebookEditor
+                  draft={draft}
+                  edit={edit}
+                  activeCell={activeCell}
+                  setActiveCell={setActiveCell}
+                  add={add}
+                />
+              )}
+              {page === 'Settings' && (
                 <SettingsEditor
                   value={draft.settings}
                   onChange={(settings) => edit({ ...draft, settings })}
                 />
-                {draft.blocks.map((block, index) => (
-                  <BlockEditor
-                    key={block.id}
-                    block={block}
-                    answers={draft.blocks.filter((b) => b.type === 'answer')}
-                    first={index === 0}
-                    last={index === draft.blocks.length - 1}
-                    onChange={(next) =>
-                      edit({
-                        ...draft,
-                        blocks: draft.blocks.map((b) => (b.id === block.id ? next : b)),
-                      })
-                    }
-                    onMove={(direction) => {
-                      const blocks = [...draft.blocks];
-                      [blocks[index], blocks[index + direction]] = [
-                        blocks[index + direction],
-                        blocks[index],
-                      ];
-                      edit({ ...draft, blocks });
-                    }}
-                    onDelete={() =>
-                      edit({
-                        ...draft,
-                        blocks: draft.blocks
-                          .filter((b) => b.id !== block.id)
-                          .map((b) =>
-                            b.type === 'checkpoint'
-                              ? { ...b, answerIds: b.answerIds.filter((a) => a !== block.id) }
-                              : b,
-                          ),
-                      })
-                    }
-                  />
-                ))}
-                <div className="panel row">
-                  <span>Add block</span>
-                  {(['markdown', 'code', 'image', 'answer', 'checkpoint'] as const).map((t) => (
-                    <button type="button" key={t} onClick={() => add(t)}>
-                      {t}
-                    </button>
+              )}
+              {page === 'Preview' && (
+                <div className="stack">
+                  <p className="notice">Student preview · responses and checks are inactive.</p>
+                  {draft.blocks.length === 0 && (
+                    <p className="muted">Add cells in Notebook to preview your lab.</p>
+                  )}
+                  {draft.blocks.map((block, index) => (
+                    <section className="panel notebook-cell" key={block.id}>
+                      <p className="eyebrow">Cell {index + 1}</p>
+                      <h3>{block.title}</h3>
+                      <PublicBlockView block={block} />
+                    </section>
                   ))}
                 </div>
-              </div>
-            )}
-          </fieldset>
-        </form>
-      )}
-      {!draft && <p>{labs.length ? 'Loading draft…' : 'Create a lab to begin.'}</p>}
-    </section>
+              )}
+              {page === 'Publish' && (
+                <section className="panel stack">
+                  <h2>Publish lab</h2>
+                  <p>
+                    Save this draft and publish a new snapshot. Existing student links keep their
+                    content.
+                  </p>
+                  <button className="primary" type="submit">
+                    {busy ? 'Publishing…' : 'Save & publish'}
+                  </button>
+                  {link && (
+                    <div className="stack">
+                      <label>
+                        Published student link
+                        <input readOnly value={link} />
+                      </label>
+                      <div className="row">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigator.clipboard
+                              .writeText(link)
+                              .then(() => setStatus('Link copied.'))
+                              .catch(() => setStatus('Select and copy the link above.'))
+                          }
+                        >
+                          Copy link
+                        </button>
+                        <a href={link} target="_blank" rel="noreferrer">
+                          Open student link
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+            </fieldset>
+          </form>
+        )}
+      </section>
+    </Workspace>
   );
 }

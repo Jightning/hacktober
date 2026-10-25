@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { Identity, PublicationLink } from '../../shared/contracts';
 import { api, send } from '../lib/api';
 import { SessionContext } from './Session';
@@ -7,6 +7,7 @@ import { Authoring } from '../features/authoring/Authoring';
 import { Student } from '../features/student/Student';
 import { Assistant } from '../features/assistant/Assistant';
 import { Staff } from '../features/staff/Staff';
+import { Workspace } from '../components/ui/Workspace';
 import { Feedback } from '../components/ui/Feedback';
 export function App() {
   const invitation = window.location.pathname.match(/^\/lab\/([^/]+)\/?$/)?.[1] || null;
@@ -17,6 +18,12 @@ export function App() {
   const [publications, setPublications] = useState<PublicationLink[]>([]);
   const [selected, setSelected] = useState(invitation || '');
   const [mock, setMock] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const reportDirty = useCallback((value: boolean) => setDirty(value), []);
+  function canLeave() {
+    return !dirty || window.confirm('Leave without saving your changes?');
+  }
   async function loadPublications() {
     const list = await api<PublicationLink[]>('/publications');
     setPublications(list);
@@ -42,7 +49,13 @@ export function App() {
   return (
     <>
       <header className="app-header">
-        <a className="brand" href="/">
+        <a
+          className="brand"
+          href="/"
+          onClick={(e) => {
+            if (!canLeave()) e.preventDefault();
+          }}
+        >
           LabMate
         </a>
         <span className="muted">Lab workspace</span>
@@ -55,9 +68,12 @@ export function App() {
             </span>
             <button
               onClick={async () => {
+                if (!canLeave()) return;
                 try {
                   await send('/session/logout');
+                  setDirty(false);
                   setUser(null);
+                  setLibraryOpen(false);
                   setPublications([]);
                 } catch (e) {
                   setError((e as Error).message);
@@ -88,26 +104,37 @@ export function App() {
             />
           ) : (
             <main>
-              {user.role !== 'student' && (
+              {user.role === 'teacher' && (
                 <nav className="tabs" aria-label="Workspace">
                   {user.role === 'teacher' && (
                     <button
                       aria-current={area === 'authoring' ? 'page' : undefined}
-                      onClick={() => setArea('authoring')}
+                      onClick={() => {
+                        if (area !== 'authoring' && canLeave()) {
+                          setDirty(false);
+                          setArea('authoring');
+                        }
+                      }}
                     >
-                      Lab editor
+                      Author
                     </button>
                   )}
                   <button
                     aria-current={area === 'staff' ? 'page' : undefined}
-                    onClick={() => setArea('staff')}
+                    onClick={() => {
+                      if (area !== 'staff' && canLeave()) {
+                        setDirty(false);
+                        setArea('staff');
+                      }
+                    }}
                   >
-                    TA dashboard
+                    Classroom
                   </button>
                 </nav>
               )}
               {user.role === 'teacher' && area === 'authoring' ? (
                 <Authoring
+                  onDirtyChange={reportDirty}
                   publicationChanged={async (id) => {
                     await loadPublications();
                     setSelected(id);
@@ -116,8 +143,17 @@ export function App() {
               ) : (
                 <>
                   <label className="publication-select">
-                    Published session
-                    <select value={selected} onChange={(e) => setSelected(e.target.value)}>
+                    Lab
+                    <select
+                      value={selected}
+                      onChange={(e) => {
+                        if (canLeave()) {
+                          setDirty(false);
+                          setSelected(e.target.value);
+                          setLibraryOpen(false);
+                        }
+                      }}
+                    >
                       {publications.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.title} · {new Date(p.publishedAt).toLocaleString()}
@@ -127,17 +163,58 @@ export function App() {
                   </label>
                   {selected ? (
                     user.role === 'student' ? (
-                      <Student
-                        key={selected}
-                        publicationId={selected}
-                        renderAssistant={(options) => (
-                          <Assistant
-                            key={options.studentId || selected}
-                            publicationId={selected}
-                            {...options}
-                          />
+                      <>
+                        {libraryOpen && (
+                          <Workspace
+                            navigation={
+                              <nav className="workspace-nav" aria-label="Student pages">
+                                <button aria-current="page">My labs</button>
+                                <button onClick={() => setLibraryOpen(false)}>Back to lab</button>
+                              </nav>
+                            }
+                          >
+                            <div className="page-heading">
+                              <h1>My labs</h1>
+                            </div>
+                            <div className="stack">
+                              {publications.map((lab) => (
+                                <div className="panel row between" key={lab.id}>
+                                  <div>
+                                    <h2>{lab.title}</h2>
+                                    <small>{new Date(lab.publishedAt).toLocaleString()}</small>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      if (lab.id === selected || canLeave()) {
+                                        if (lab.id !== selected) setDirty(false);
+                                        setSelected(lab.id);
+                                        setLibraryOpen(false);
+                                      }
+                                    }}
+                                  >
+                                    Open lab
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </Workspace>
                         )}
-                      />
+                        <div hidden={libraryOpen}>
+                          <Student
+                            onOpenLabs={() => setLibraryOpen(true)}
+                            onDirtyChange={reportDirty}
+                            key={selected}
+                            publicationId={selected}
+                            renderAssistant={(options) => (
+                              <Assistant
+                                key={options.studentId || selected}
+                                publicationId={selected}
+                                {...options}
+                              />
+                            )}
+                          />
+                        </div>
+                      </>
                     ) : (
                       <Staff
                         key={selected}

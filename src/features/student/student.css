@@ -1,0 +1,29 @@
+/* Keep local pages mounted while removing hidden content from layout and focus. */
+.student-notebook[hidden],
+.student-progress[hidden] {
+  display: none;
+}
+.student-notebook {
+  gap: 1rem;
+}
+.student-cell {
+  scroll-margin-top: 1.5rem;
+}
+.student-cell h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+.student-cell-number {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted, #64748b);
+  min-width: 1.25rem;
+}
+.student-unsaved {
+  font-size: 0.85rem;
+  color: var(--muted, #64748b);
+}
+.student-progress progress {
+  width: 100%;
+}
