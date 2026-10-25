@@ -1,5 +1,15 @@
 # R4 — AI integration handoff
 
+## Integration review — 2026-10-25
+
+The integration owner reviewed and merged remote R4 tip `e29598b` after R1/R2 remote main `1333147`, before R3. Typecheck, all 39 tests, and production build passed at this stage.
+
+The latest R4 commit adds `server/modules/ai/guardrails.ts`, integrates it into AI routes, and adds five regression tests in addition to the quota recovery test. Input checks bound context/history, reject recognized instruction-override patterns and credentials, and reject private field names in student context. Reply checks validate shape/size, withhold credentials and recognized claims of workflow mutation, and withhold verbatim private criteria or matching exact/numeric answer values for students before persistence. Existing assistant history is filtered through these reply checks before display or inclusion in later provider input. Staff may receive grading criteria after authorization, while false claims of approving/resolving are withheld for both roles.
+
+These checks are conservative string/pattern matching. They can reject benign questions or hints (including a number that happens to match a private expected value), and they do not detect every paraphrase, equivalent numeric representation, or instruction attack. They supplement the server's authorization and explicit public projection; they do not certify semantic secrecy or provider reliability. The earlier live observations predate this safeguard commit; fresh integration smoke results are recorded in the combined integration handoff.
+
+The completed browser matrix recorded below closes the formerly unchecked R4.3 item. No additional production code repair was required by this integration review. Earlier readiness counts and file lists below describe their respective passes, not the final merged checkout.
+
 ## Final R4 completion — 2026-10-25
 
 **R4.1–R4.4 complete on the recreated `r4` branch, based on integrated main `6173842`.** The previously outstanding browser-state matrix is now verified. No further production assistant defect was found; the existing conversation isolation and recovery implementation passed. Added an explicit HTTP 429 quota-exhaustion/recovery regression in `tests/ai.test.ts`.

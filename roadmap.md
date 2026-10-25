@@ -315,7 +315,7 @@ R1 implementation: `683b543`. All 28 tests, typecheck and build pass. See [R1 ha
 ### R4.3 — Finish assistant recovery and presentation
 
 - [x] Preserve `Assistant({publicationId, studentId?, enabled})` and existing reply/history shapes; keep all UI changes within the assistant feature.
-- [ ] Verify disabled, empty history, pending, live success, mock success, missing-key, quota/access failure, and retry states. Failed sends retain the user's question; duplicate clicks do not create duplicate successful history turns.
+- [x] Verify disabled, empty history, pending, live success, mock success, missing-key, quota/access failure, and retry states. Failed sends retain the user's question; duplicate clicks do not create duplicate successful history turns.
 - [x] Verify switching selected students never displays a previous student's in-flight reply in the new conversation. Preserve the shell's keyed assistant composition.
 - [x] Keep model calls behind `provider.ts`; retain bounded history/input, timeout, and per-conversation in-flight control. Defer classroom-wide quota infrastructure unless needed to resolve an observed demo blocker.
 
